@@ -34,11 +34,28 @@ Expected:
 42e1457b6d986aa6c102a8865483692f6a838234a3bb5393fffe3339e47b37d3
 ```
 
-Everything else in the repo is listed in [`SHA256SUMS`](SHA256SUMS):
+Everything else in the repo is listed in [`SHA256SUMS`](SHA256SUMS), and that manifest is signed,
+so one check covers every file:
 
 ```bash
+gpg --import pubkey-0x48FA7916.asc
+gpg --verify SHA256SUMS.asc SHA256SUMS
 sha256sum -c SHA256SUMS
 ```
+
+The signing key — the same address `SECURITY.md` asks you to report vulnerabilities to:
+
+```
+avbforge <security@avbforge.com>
+ed25519, created 2026-08-02, expires 2029-08-03
+A624 7583 4D0C 4C51 2B96  D852 E02F 767A 48FA 7916
+```
+
+**Importing that key from this repository proves nothing by itself.** Anyone who could replace the
+HTML could replace the key sitting next to it and re-sign. The signature is only worth something
+once you have checked that fingerprint against a copy published somewhere this repository does not
+control — the project site, an X post, a signed Nostr note. Do that once; after that the signature
+does the work for every future release.
 
 The page **cannot hash itself**. A local page may not read its own bytes, and what JavaScript sees
 is a re-serialisation of the parsed document rather than the file on disk. Any self-reported hash
@@ -125,6 +142,8 @@ if you get it wrong: [`docs/recovering-on-iancoleman.md`](docs/recovering-on-ian
 | `recover.py` | dependency-free recovery script |
 | `bip39-english.txt` | official BIP-39 English wordlist |
 | `SHA256SUMS` | checksums for everything above |
+| `SHA256SUMS.asc` | detached OpenPGP signature over that manifest |
+| `pubkey-0x48FA7916.asc` | the public key it verifies against |
 | `SECURITY.md` | threat model, scope, and how to report a vulnerability |
 | `docs/entropy-method-and-comparison.md` | the method, and an even-handed comparison with iancoleman |
 | `docs/recovering-on-iancoleman.md` | recovery walkthrough |
