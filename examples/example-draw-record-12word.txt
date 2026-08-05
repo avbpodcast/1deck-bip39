@@ -1,0 +1,10 @@
+# 1-deck card → BIP-39 draw record · generator version 2.13
+# 12 words · reshuffle · margin
+ 1: TD KD 8H 5C
+ 2: TS 2D 8C JH
+ 3: 8C 9C KH TC
+ 4: KD 7H 3S QH
+ 5: 8H 7H AD JH
+ 6: 7S KS 5S 6C
+ 7: 5D QH 7S 3C
+ 8: AC JS QS 3H

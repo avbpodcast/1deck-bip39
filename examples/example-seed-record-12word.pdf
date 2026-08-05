@@ -1,0 +1,188 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [7 0 R 9 0 R 11 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 6002 >>
+stream
+BT /F2 15 Tf 0 0 0 rg 42.00 799.89 Td (1-Deck Casino Card to BIP-39 Seed Record) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 778.89 Td (Generator version 2.12, derivation id "1deck-bip39-v2".) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 766.49 Td (Generated offline from physical card draws. No random number generator was used at any) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 754.09 Td (point: every entropy bit below comes from cards that were shuffled, drawn and typed in by) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 741.69 Td (hand.) Tj ET
+0.97 0.90 0.90 rg 36 653.69 523.28 76.60 re f
+BT /F2 10.5 Tf 0 0 0 rg 42.00 711.29 Td (THIS DOCUMENT IS YOUR SEED) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 696.29 Td (Anyone holding this file can spend your funds. The card draws alone reproduce the seed, so) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 683.89 Td (redacting the word list does not make it safe. Print it and destroy the digital copy, or) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 671.49 Td (store it exactly as you would store the seed phrase itself. Never place it on an) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 659.09 Td (internet-connected or cloud-synced machine.) Tj ET
+0.65 G 0.7 w 42 640.69 m 553.28 640.69 l S
+BT /F2 10.5 Tf 0 0 0 rg 42.00 622.69 Td (1. CONFIGURATION) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 607.69 Td (Seed length) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 607.69 Td (12 words \(128-bit entropy\)) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 595.09 Td (Protocol) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 595.09 Td (Reshuffle the full deck between every draw) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 582.49 Td (Entropy setting) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 582.49 Td (Safety margin) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 569.89 Td (Physical draws) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 569.89 Td (8 draws of 4 cards = 32 entries) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 557.29 Td (Deck) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 557.29 Td (one standard 52-card deck, reshuffled between draws) Tj ET
+BT /F2 10.5 Tf 0 0 0 rg 42.00 538.69 Td (2. ENTROPY ACCOUNTING) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 523.69 Td (Card entropy available) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 523.69 Td (181.05 bits) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 511.09 Td (Bits extracted) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 511.09 Td (128 bits) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 498.49 Td (Head-room) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 498.49 Td (53.05 bits) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 485.89 Td (Extraction efficiency) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 485.89 Td (70.7 %) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 471.29 Td (Head-room is the surplus that lets SHA-256 act as a randomness extractor: it is what absorbs) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 458.89 Td (an imperfect shuffle instead of passing the bias through to the seed.) Tj ET
+0.65 G 0.7 w 42 446.49 m 553.28 446.49 l S
+BT /F2 10.5 Tf 0 0 0 rg 42.00 428.49 Td (3. PHYSICAL DRAWS, IN THE ORDER THE CARDS CAME OFF THE DECK) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 413.49 Td (Ranks A 2 3 4 5 6 7 8 9 T J Q K   Suits C=Clubs D=Diamonds H=Hearts S=Spades. Order matters:) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 401.09 Td (the same four cards in a different order give a different seed.) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 384.69 Td (Draw  1 :  TD  KD  8H  5C    \(10 of Diamonds, King of Diamonds, 8 of Hearts, 5 of Clubs\)) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 373.35 Td (Draw  2 :  TS  2D  8C  JH    \(10 of Spades, 2 of Diamonds, 8 of Clubs, Jack of Hearts\)) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 362.01 Td (Draw  3 :  8C  9C  KH  TC    \(8 of Clubs, 9 of Clubs, King of Hearts, 10 of Clubs\)) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 350.67 Td (Draw  4 :  KD  7H  3S  QH    \(King of Diamonds, 7 of Hearts, 3 of Spades, Queen of Hearts\)) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 339.33 Td (Draw  5 :  8H  7H  AD  JH    \(8 of Hearts, 7 of Hearts, Ace of Diamonds, Jack of Hearts\)) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 327.99 Td (Draw  6 :  7S  KS  5S  6C    \(7 of Spades, King of Spades, 5 of Spades, 6 of Clubs\)) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 316.65 Td (Draw  7 :  5D  QH  7S  3C    \(5 of Diamonds, Queen of Hearts, 7 of Spades, 3 of Clubs\)) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 42.00 305.31 Td (Draw  8 :  AC  JS  QS  3H    \(Ace of Clubs, Jack of Spades, Queen of Spades, 3 of Hearts\)) Tj ET
+BT /F2 10.5 Tf 0 0 0 rg 42.00 283.97 Td (SHUFFLE CHECK) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 268.97 Td (No sign of under-shuffling: 4 adjacent pairs, against an expected 1.7.) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 256.57 Td (Counted: the 48 pairs of cards dealt within 3 positions of each other that share a suit and) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 244.17 Td (sit one rank apart. A sealed deck arrives with each suit in rank order, so surviving pairs) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 231.77 Td (are the fingerprint of a deck that was not riffled enough. Expected 1.74 for a well-shuffled) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 219.37 Td (deck; warning above 5, strong alarm above 7.) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 206.97 Td (Pairs found: 8C and 9C \(draw 3\); 9C and TC \(draw 3\); 8H and 7H \(draw 5\); JS and QS \(draw 8\)) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 194.57 Td (This is a blunder detector, not a certificate: it catches one or two riffles reliably, is) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 182.17 Td (blind to four or more, and assumes the deck started in factory order. A deck already in some) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 169.77 Td (other known order - a cancelled casino deck resealed in a box, for instance - passes this) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 157.37 Td (check regardless.) Tj ET
+0.65 G 0.7 w 42 144.97 m 553.28 144.97 l S
+BT /F2 10.5 Tf 0 0 0 rg 42.00 126.97 Td (4. DERIVATION - REPRODUCIBLE WITH ANY SHA-256 TOOL) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 111.97 Td (Step 1. Every card, in order, is written into one domain-separated ASCII string:) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 52.00 96.57 Td (1deck-bip39-v2|12|TD KD 8H 5C TS 2D 8C JH 8C 9C KH TC KD 7H 3S QH 8H 7H AD JH 7S KS 5S 6C 5D QH 7S) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 52.00 85.23 Td (3C AC JS QS 3H) Tj ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 6 0 R >>
+endobj
+8 0 obj
+<< /Length 1425 >>
+stream
+BT /F1 9.3 Tf 0 0 0 rg 42.00 799.89 Td (Step 2. That string is hashed. Reproduce it on any command line with the following, which is) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 787.49 Td (ONE line - if it wraps below, join it back together before running it:) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 52.00 772.09 Td (printf '%s' '1deck-bip39-v2|12|TD KD 8H 5C TS 2D 8C JH 8C 9C KH TC KD 7H 3S QH 8H 7H AD JH 7S KS 5S) Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 52.00 760.75 Td (6C 5D QH 7S 3C AC JS QS 3H' | sha256sum) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 744.41 Td (SHA-256 of preimage) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 744.41 Td () Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 192.00 731.81 Td (56cd7feb1647fd133477bc54589f7c2d5eefb33dec0fac06f085518495a628a2) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 716.47 Td (Step 3. The leading 128 bits of that digest are the entropy:) Tj ET
+BT /F3 9.6 Tf 0 0 0 rg 52.00 701.07 Td (56cd7feb1647fd133477bc54589f7c2d) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 683.11 Td (Step 4. The BIP-39 checksum is computed from that entropy - it is not drawn and not chosen.) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 670.71 Td (SHA-256\(entropy\) = 8d228cb19edc18fe9b18551bafbe5e0d32d45f211d3a82f0c5416b83889769ba; its) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 658.31 Td (leading 4 bits \(1000\) are appended, and the resulting 132 bits are split into 12 groups of) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 645.91 Td (11, each indexing the official BIP-39 English word list.) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 8 0 R >>
+endobj
+10 0 obj
+<< /Length 5138 >>
+stream
+BT /F2 15 Tf 0 0 0 rg 42.00 799.89 Td (Seed Phrase) Tj ET
+0.97 0.90 0.90 rg 36 756.89 523.28 27.00 re f
+BT /F2 10.5 Tf 0 0 0 rg 42.00 764.89 Td (SECRET - ANYONE WHO READS THIS CAN SPEND YOUR FUNDS) Tj ET
+BT /F3 10 Tf 0 0 0 rg 42.00 741.89 Td (1. fine                     5. lemon                    9. february) Tj ET
+BT /F3 10 Tf 0 0 0 rg 42.00 728.39 Td (2. hip                      6. maze                    10. shaft) Tj ET
+BT /F3 10 Tf 0 0 0 rg 42.00 714.89 Td (3. width                    7. spike                   11. tenant) Tj ET
+BT /F3 10 Tf 0 0 0 rg 42.00 701.39 Td (4. clutch                   8. wasp                    12. force) Tj ET
+0.65 G 0.7 w 42 677.89 m 553.28 677.89 l S
+BT /F2 10.5 Tf 0 0 0 rg 42.00 659.89 Td (FULL SEED PHRASE) Tj ET
+BT /F3 10.5 Tf 0 0 0 rg 42.00 642.89 Td (fine hip width clutch lemon maze spike wasp february shaft tenant force) Tj ET
+0.65 G 0.7 w 42 618.72 m 553.28 618.72 l S
+BT /F2 10.5 Tf 0 0 0 rg 42.00 600.72 Td (VERIFICATION) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 585.72 Td (BIP-39 checksum) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 585.72 Td (VALID - re-checked against the BIP-39 rules) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 571.12 Td (First receive addresses) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 571.12 Td (native SegWit, BIP-84) Tj ET
+BT /F3 8.6 Tf 0 0 0 rg 42.00 558.51 Td (m/84'/0'/0'/0/0   bc1qv96hhcapy3x55jk8w59nsxeut5vytnuga8fn6l) Tj ET
+BT /F3 8.6 Tf 0 0 0 rg 42.00 546.90 Td (m/84'/0'/0'/0/1   bc1qp3phvf9aagm6t74geaspmcpy3vac9h0mt827my) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 531.29 Td (Master fingerprint) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 531.29 Td (B8428EFE   \(no passphrase\)) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 518.69 Td (Restore these words into your wallet or signing device and compare the fingerprint it shows.) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 506.29 Td (If the eight characters match, every word arrived intact. A BIP-39 passphrase changes this) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 493.89 Td (value, and is deliberately not recorded here.) Tj ET
+BT /F2 9 Tf 0 0 0 rg 42.00 481.50 Td (Draw fingerprint) Tj ET
+BT /F3 9 Tf 0 0 0 rg 192.00 481.50 Td () Tj ET
+BT /F3 8.4 Tf 0 0 0 rg 192.00 468.89 Td (9deae0f02fc04eb9fb5f5ea3b4597ce0b6ca61e2883b945772ffe79c044de21f) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 453.56 Td (To confirm this record is intact, re-enter the draws from section 3 into the generator and) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 441.16 Td (check that you get the same seed phrase. The fingerprint above is SHA-256 over the string) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 428.76 Td ("fingerprint|" followed by the card codes, and is what the tool's verify-by-re-entry mode) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 416.36 Td (compares.) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 399.96 Td (No date is recorded in this file. The generator has no access to the system clock by design,) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 387.56 Td (so that nothing time-derived can enter the derivation.) Tj ET
+0.65 G 0.7 w 42 369.16 m 553.28 369.16 l S
+BT /F2 10.5 Tf 0 0 0 rg 42.00 351.16 Td (RECOVERY WITHOUT THIS GENERATOR) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 336.16 Td (The entropy in section 4 is the universal interchange format: any BIP-39 tool can turn it) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 323.76 Td (back into these exact words.) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 48.00 308.36 Td (1.  Entropy:  56cd7feb1647fd133477bc54589f7c2d) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 76.00 296.48 Td (or recompute it from the draws in section 3, as shown there.) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 48.00 284.60 Td (2.  Open a BIP-39 tool. iancoleman.io/bip39 is the most widely mirrored;) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 76.00 272.72 Td (use its offline standalone copy, on a disconnected machine.) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 48.00 260.84 Td (3.  Set  Entropy Type = Hex.  Set it explicitly - auto-detect can read) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 76.00 248.96 Td (an all-digit entropy as base 10 and silently give the wrong seed.) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 48.00 237.08 Td (4.  Set  Mnemonic Length = "Use Raw Entropy".  NOT "12 Words" - that) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 76.00 225.20 Td (hashes your entropy a second time and yields a different seed.) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 48.00 213.32 Td (5.  Paste the entropy. The phrase appears immediately.) Tj ET
+BT /F3 8.8 Tf 0 0 0 rg 48.00 201.44 Td (6.  Verify: BIP84 tab, first address = bc1qv96hhcapy3x55jk8w59nsxeut5vytnuga8fn6l) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 186.56 Td (Do not paste the CARDS into another tool and expect these words: other tools encode cards) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 174.16 Td (differently, so you would get a valid but different seed. The entropy hex is what they) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 161.76 Td (share.) Tj ET
+0.65 G 0.7 w 42 143.36 m 553.28 143.36 l S
+BT /F2 10.5 Tf 0 0 0 rg 42.00 125.36 Td (STORAGE) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 110.36 Td (Store on paper or metal, offline, where only you can reach it. Test recovery with a small) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 97.96 Td (amount before committing real funds. A BIP-39 passphrase is a second factor and is not) Tj ET
+BT /F1 9.3 Tf 0 0 0 rg 42.00 85.56 Td (recorded here.) Tj ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 10 0 R >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000128 00000 n 
+0000000225 00000 n 
+0000000327 00000 n 
+0000000422 00000 n 
+0000006476 00000 n 
+0000006628 00000 n 
+0000008105 00000 n 
+0000008257 00000 n 
+0000013448 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R >>
+startxref
+13602
+%%EOF
