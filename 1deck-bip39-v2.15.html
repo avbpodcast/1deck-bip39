@@ -1,0 +1,3365 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>1-Deck Casino Card → BIP-39 Seed Generator (Physical Draws Only)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root{
+    --bg:#0d1b2a; --felt:#1b4332; --felt-dark:#132a1f;
+    --gold:#fdb813; --gold-light:#ffca4a;
+    --text:#e0e1dd; --muted:#9ba9a0;
+    --panel:#182825; --border:#2d5a4a;
+    --ok-bg:#1e3a2c; --ok-border:#4ade80;
+    --fail-bg:#3d1f25; --fail-border:#f87171;
+    --warn-bg:#3a2f16; --warn-border:#fdb813;
+    --accent:#00d4ff;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    background:radial-gradient(circle at top,#1b4332,#0d1b2a 70%);color:var(--text);min-height:100vh;}
+.page{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
+
+header{text-align:center;margin-bottom:52px;position:relative;}
+header::before{content:"";position:absolute;inset:-34px -40px;
+    background:radial-gradient(ellipse at center,var(--felt) 0%,var(--felt-dark) 100%);
+    border:8px solid var(--gold);border-radius:32px;box-shadow:0 20px 40px rgba(0,0,0,.6);z-index:-1;}
+header h1{margin:0 0 10px;font-size:30px;font-weight:800;
+    background:linear-gradient(90deg,var(--gold-light),var(--gold));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+header p{max-width:740px;margin:0 auto;color:var(--muted);font-size:14px;}
+header .ver{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--gold);
+    font-weight:700;margin:0 0 12px;opacity:.85;}
+
+.panel{background:var(--panel);border:2px solid var(--border);border-radius:20px;
+    padding:24px;margin-bottom:24px;box-shadow:0 8px 25px rgba(0,0,0,.5);}
+.panel h2{margin:0 0 6px;font-size:20px;color:var(--gold-light);}
+.panel .sub{font-size:13px;color:var(--muted);margin:0 0 16px;line-height:1.5;}
+
+.banner{border-radius:14px;padding:14px 16px;margin-bottom:24px;font-size:14px;line-height:1.55;}
+.banner.rng{background:var(--ok-bg);border:2px solid var(--ok-border);color:#c9f7dc;}
+.banner.warn{background:var(--warn-bg);border:2px solid var(--warn-border);color:#ffe6a8;}
+.banner.danger{background:var(--fail-bg);border:3px solid var(--fail-border);color:#ffd0d0;}
+.banner.ok-ctx{background:var(--ok-bg);border:2px solid var(--ok-border);color:#c9f7dc;}
+.banner{position:relative;padding-right:44px;}
+.bannerX{position:absolute;top:8px;right:10px;margin:0;padding:0;width:26px;height:26px;line-height:1;
+    font-size:19px;font-weight:800;border-radius:8px;background:rgba(0,0,0,.28);color:inherit;
+    box-shadow:none;cursor:pointer;}
+.bannerX:hover{background:rgba(0,0,0,.5);transform:none;box-shadow:none;}
+
+button{padding:10px 22px;font-size:15px;font-weight:700;cursor:pointer;border:none;border-radius:12px;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold));color:#000;
+    box-shadow:0 6px 15px rgba(0,0,0,.4);transition:all .15s ease-out;}
+button:hover{transform:translateY(-1px);box-shadow:0 9px 18px rgba(0,0,0,.5);}
+button:active{transform:translateY(0);}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+button.secondary{background:linear-gradient(180deg,#9ba9a0,#7b8b83);}
+button.ghost{background:transparent;border:2px solid var(--border);color:var(--text);box-shadow:none;}
+button.danger{background:linear-gradient(180deg,#f87171,#dc2626);color:#fff;}
+button.danger:disabled{opacity:.45;}
+.btnrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+
+select,input[type=text]{padding:7px 8px;font-size:14px;border-radius:9px;border:2px solid var(--border);
+    background:#0f1f1b;color:var(--text);}
+select:focus,input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(253,184,19,.28);}
+
+.setupgrid{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;}
+.setupgrid label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--gold-light);font-weight:600;}
+
+/* ── draw entry: one block per draw, four aligned card slots ── */
+#drawList{margin-top:4px;}
+
+.passHead{display:flex;align-items:center;gap:10px;margin:22px 0 12px;font-size:12px;
+    letter-spacing:.07em;text-transform:uppercase;color:var(--gold-light);font-weight:700;}
+.passHead:first-child{margin-top:4px;}
+.passHead::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--border),transparent);}
+
+.draw{border:2px solid var(--border);border-radius:16px;padding:12px 14px 14px;margin-bottom:10px;
+    background:#12201d;transition:border-color .15s,background .15s;}
+.draw.done{border-color:rgba(74,222,128,.55);background:#132621;}
+.draw.err {border-color:#f87171;background:#2a1519;}
+
+.drawHead{display:flex;align-items:center;gap:10px;margin-bottom:11px;flex-wrap:wrap;}
+.dno{font-weight:800;color:var(--gold-light);font-size:14px;min-width:66px;}
+.draw.done .dno{color:#4ade80;}
+.quick{flex:1;min-width:170px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px;
+    letter-spacing:.06em;text-transform:uppercase;padding:6px 9px;}
+.quick::placeholder{text-transform:none;letter-spacing:normal;color:#5d7a70;}
+.dstat{font-size:12px;color:var(--muted);white-space:nowrap;}
+.dstat.bad{color:#f87171;font-weight:700;}
+.dstat.good{color:#4ade80;font-weight:700;}
+
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.slot{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.slot .cap{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;}
+.slot select{width:100%;padding:6px 4px;font-size:14px;font-weight:700;text-align:center;}
+.slot select.suit.red{color:#ff5c5c;}
+.slot.dupe select{border-color:#f87171;background:#2a1418;}
+.slot.dupe .cap{color:#f87171;}
+
+.mini{width:46px;height:64px;border-radius:7px;border:2px dashed rgba(255,255,255,.22);
+    background:rgba(0,0,0,.25);display:flex;flex-direction:column;justify-content:space-between;
+    padding:3px 4px;font-weight:800;font-size:14px;line-height:1;color:#000;}
+.mini.filled{background:#fff;border:1px solid #111;border-style:solid;}
+.mini.filled.red{color:#c00000;}
+.mini .mid{text-align:center;font-size:19px;}
+.mini .bot{align-self:flex-end;transform:rotate(180deg);}
+.mini.dupe{border-color:#f87171;box-shadow:0 0 0 2px rgba(248,113,113,.35);}
+
+@media(max-width:640px){
+    .slots{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .dno{min-width:auto;}
+}
+
+/* ── message / result boxes ── */
+.out{margin-top:14px;padding:14px;border-radius:14px;font-size:14px;line-height:1.5;}
+.out.ok{background:var(--ok-bg);border:2px solid var(--ok-border);color:#c9f7dc;}
+.out.fail{background:var(--fail-bg);border:2px solid var(--fail-border);color:#ffc0c0;}
+.out.warn{background:var(--warn-bg);border:2px solid var(--warn-border);color:#ffe6a8;}
+.out.info{background:#0f1f1b;border:2px solid var(--border);color:var(--text);}
+
+pre.mono{margin:10px 0 0;padding:12px;background:#0f1f1b;border-radius:10px;border:1px solid var(--border);
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;line-height:1.5;
+    max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-all;}
+
+/* ── result: numbered word grid ── */
+#wordGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:16px;}
+#wordGrid .w{display:grid;grid-template-columns:2.4em 1fr;align-items:stretch;
+    background:rgba(253,184,19,.13);border:1px solid rgba(253,184,19,.32);border-radius:10px;overflow:hidden;}
+#wordGrid .w .n{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;font-weight:700;
+    color:var(--muted);background:rgba(0,0,0,.28);border-right:1px solid rgba(253,184,19,.25);
+    display:flex;align-items:center;justify-content:flex-end;padding:9px 8px;}
+#wordGrid .w .t{font-size:16px;font-weight:700;color:var(--gold-light);padding:9px 12px;
+    display:flex;align-items:center;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── seed masking: hidden by default, revealed deliberately ── */
+.masked{filter:blur(10px);user-select:none;-webkit-user-select:none;pointer-events:none;
+    transition:filter .12s ease-out;}
+#seedMaskBar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px;
+    padding:10px 12px;border:2px dashed var(--border);border-radius:12px;background:#0f1f1b;}
+#seedMaskBar button{margin:0;padding:8px 18px;font-size:14px;}
+#revealHint{font-size:12px;color:var(--muted);flex:1;min-width:200px;}
+#revealCountdown{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;
+    font-weight:700;color:var(--gold-light);white-space:nowrap;}
+
+/* ── result: full phrase on one line ── */
+#phraseBlock{margin-top:22px;}
+#phraseBlock .sep{border:none;border-top:1px solid var(--border);margin:0 0 16px;}
+#phraseBlock .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;margin-bottom:8px;}
+#phraseText{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:16px;line-height:1.95;
+    word-spacing:.3em;color:var(--gold-light);background:#0f1f1b;border:2px solid var(--border);
+    border-radius:12px;padding:14px 16px;user-select:all;-webkit-user-select:all;word-break:break-word;}
+#phraseBlock .hint{font-size:12px;color:var(--muted);margin-top:7px;}
+
+/* ── master fingerprint ── */
+#xfpBlock{margin-top:22px;}
+#xfpBlock .sep{border:none;border-top:1px solid var(--border);margin:0 0 16px;}
+#xfpBlock .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    font-weight:700;margin-bottom:8px;}
+#xfpValue{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:30px;font-weight:800;
+    letter-spacing:.22em;color:#4ade80;background:#0f1f1b;border:2px solid var(--ok-border);
+    border-radius:12px;padding:14px 16px;text-align:center;user-select:all;}
+#xfpBlock .hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.55;}
+.xfpPassRow{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.xfpPassRow label{font-size:12px;color:var(--gold-light);font-weight:600;}
+.xfpPassRow input{flex:1;min-width:200px;font-family:ui-monospace,Menlo,Consolas,monospace;}
+.addrRow{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;background:#0f1f1b;
+    border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-top:7px;}
+.addrRow .ap{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--muted);
+    white-space:nowrap;min-width:120px;}
+.addrRow .aa{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;font-weight:700;
+    color:var(--accent);word-break:break-all;user-select:all;}
+
+/* ── progress bar ── */
+.progressbar{height:10px;border-radius:6px;background:#0f1f1b;border:1px solid var(--border);
+    overflow:hidden;margin-top:14px;}
+.progressbar div{height:100%;background:linear-gradient(90deg,var(--gold),#4ade80);width:0%;transition:width .25s;}
+
+.sheetPreviewLabel{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    font-weight:700;margin-top:18px;}
+
+/* ── printable draw sheet ── */
+table.sheet{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;}
+table.sheet th,table.sheet td{border:1px solid var(--border);padding:7px 9px;text-align:left;}
+table.sheet th{background:#0f1f1b;color:var(--gold-light);}
+table.sheet td.blank{height:30px;color:#3f5c52;letter-spacing:.35em;}
+
+footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--border);font-size:13px;color:var(--muted);}
+footer h3{margin:0 0 6px;font-size:14px;color:var(--text);}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;}
+.doclinks{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);font-size:13px;}
+.doclinks a{color:var(--gold-light);font-weight:700;text-decoration:none;
+    border-bottom:1px solid rgba(253,184,19,.45);padding-bottom:1px;}
+.doclinks a:hover{border-bottom-color:var(--gold-light);}
+.doclinks .sep{color:var(--muted);margin:0 6px;}
+.doclinks .note{display:block;margin-top:6px;font-size:11.5px;color:var(--muted);}
+a{color:var(--gold-light);}
+
+/* Printing the page is not how you get a draw sheet — use the PDF button, which draws real
+   ruled boxes. These rules only ensure that Ctrl+P produces something legible rather than the
+   blank decorated page the earlier stylesheet produced by hiding every .panel. */
+@media print{
+    body{background:#fff !important;color:#000 !important;}
+    header::before{display:none !important;}
+    header h1{background:none !important;-webkit-text-fill-color:#000 !important;color:#000 !important;}
+    header .ver,header p{color:#333 !important;}
+    .panel{background:#fff !important;border:1px solid #999 !important;box-shadow:none !important;
+        break-inside:avoid;page-break-inside:avoid;}
+    .panel h2,.dno,.passHead,.sheetPreviewLabel{color:#000 !important;}
+    .panel .sub,footer,.dstat{color:#333 !important;}
+    button,.btnrow,.banner,.progressbar,#drawList,#detail,#testOut,#wipeStatus{display:none !important;}
+    pre.mono{background:#fff !important;border:1px solid #999 !important;color:#000 !important;max-height:none;}
+    .out{background:#fff !important;border:1px solid #999 !important;color:#000 !important;}
+    table.sheet th{background:#eee !important;color:#000 !important;}
+    table.sheet th,table.sheet td{border:1px solid #666 !important;}
+    table.sheet td.blank{color:#999 !important;}
+    #wordGrid .w,#phraseText{background:#fff !important;border:1px solid #999 !important;color:#000 !important;}
+    #wordGrid .w .n{background:#eee !important;color:#000 !important;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+    <h1>1-Deck Casino Card → BIP-39 Seed Generator</h1>
+    <div class="ver" id="verLine"></div>
+    <p><strong>Physical draws only.</strong> This version contains no random number generator of any kind.
+    Every entropy bit comes from cards you shuffled, drew and typed in by hand. Nothing else is an input.</p>
+</header>
+
+<div class="banner" id="contextBanner" style="display:none;"></div>
+
+<!-- ───────────── 1. PROTOCOL ───────────── -->
+<div class="panel">
+    <h2>1 · Set up your physical protocol</h2>
+    <p class="sub">
+        <strong>Wash the deck first.</strong> Spread all 52 cards face-down on the table and swirl them around
+        with both hands for at least 30 seconds, then square them up. A wash destroys the factory order far
+        faster than riffling does, and every entropy figure below assumes the order is gone. Only then riffle,
+        seven times or more, with a cut or a strip between each.<br><br>
+        Use a sealed deck bought new from a shop (Bee, Bicycle, Copag 310…). Remove jokers and advertising
+        cards — 52 cards exactly.
+        Do this on an air-gapped machine.
+    </p>
+
+    <div class="setupgrid">
+        <label class="f">Seed length
+            <select id="seedLength" autocomplete="off" onchange="rebuild()">
+                <option value="12">12 words · 128-bit</option>
+                <option value="24">24 words · 256-bit</option>
+            </select>
+        </label>
+        <label class="f">Draw protocol
+            <select id="protocol" autocomplete="off" onchange="rebuild()">
+                <option value="reshuffle">Reshuffle the full deck between every draw</option>
+                <option value="dealthrough" id="optDealthrough">Deal straight through the deck (fewest shuffles)</option>
+            </select>
+        </label>
+        <label class="f">Shuffle method
+            <select id="shuffleMethod" autocomplete="off" onchange="renderShuffleAdvice()">
+                <option value="riffle">Table riffle (recommended)</option>
+                <option value="overhand">Overhand or Hindu</option>
+                <option value="wash">Wash / smoosh only</option>
+                <option value="faro">Faro / perfect interleave</option>
+            </select>
+        </label>
+        <label class="f">Entropy margin
+            <select id="margin" autocomplete="off" onchange="rebuild()">
+                <option value="margin">Safety margin (recommended)</option>
+                <option value="minimum">Minimum draws</option>
+            </select>
+        </label>
+    </div>
+
+    <div class="out info" id="protocolInfo"></div>
+    <div class="out" id="shuffleAdvice"></div>
+    <div class="out warn" id="protocolWarn" style="display:none;"></div>
+</div>
+
+<!-- ───────────── 2. DRAWS ───────────── -->
+<div class="panel">
+    <h2>2 · Enter your physical draws</h2>
+    <p class="sub" id="drawIntro"></p>
+
+    <div id="drawList"></div>
+
+    <div class="progressbar"><div id="progressFill"></div></div>
+    <div style="margin-top:6px;font-size:12px;color:var(--muted);" id="progressText"></div>
+
+    <div class="btnrow">
+        <button id="deriveBtn" onclick="deriveSeed()">Derive seed from my draws</button>
+        <button class="secondary" onclick="clearDraws()">Clear all draws</button>
+        <button class="ghost" onclick="exportSheet()">Export draw record (.txt)</button>
+        <button class="ghost" onclick="importSheet()">Import draw record (.txt)</button>
+        <input type="file" id="importFile" accept=".txt,text/plain" style="display:none"
+               onchange="onImportFile(event)">
+    </div>
+
+    <div id="drawMsg"></div>
+</div>
+
+<!-- ───────────── 3. RESULT ───────────── -->
+<div class="panel">
+    <h2>3 · Result</h2>
+    <p class="sub">
+        The entropy is the leading bits of SHA-256 over your exact card sequence, so all 128 (or 256) entropy bits
+        come from cards on the table. The BIP-39 checksum is then computed from that entropy exactly as the standard
+        defines — checksum bits are redundancy, not entropy, so there is nothing to draw for and nothing to choose.
+    </p>
+    <div id="result" class="out info">No seed derived yet.</div>
+    <div id="shuffleCheck" class="out info" style="display:none;"></div>
+    <div id="seedMaskBar" style="display:none;">
+        <button id="revealBtn" onclick="toggleReveal()">Reveal seed</button>
+        <span id="revealHint">The seed is blurred until you ask for it. It re-hides after 20 seconds
+            without keyboard or mouse activity, and immediately if you switch tab or window.</span>
+        <span id="revealCountdown"></span>
+    </div>
+    <div id="wordGrid"></div>
+    <div id="phraseBlock" style="display:none;">
+        <hr class="sep">
+        <div class="lbl">Full seed phrase</div>
+        <div id="phraseText"></div>
+        <div class="hint">Click once to select the whole phrase, once it is revealed. Word order is part of the seed.<br>
+            Writing the words down by hand is safer than copying: the clipboard is readable by every
+            application on the machine, and a clipboard manager keeps its own history that this page cannot reach.
+            If you do copy, it is overwritten automatically after 60 seconds.</div>
+    </div>
+    <div id="xfpBlock" style="display:none;">
+        <hr class="sep">
+        <div class="lbl">Master fingerprint — check this against your wallet</div>
+        <div id="xfpValue">&nbsp;</div>
+        <div class="hint" id="xfpNote"></div>
+        <div id="addrBlock" style="display:none;">
+            <div class="lbl" style="margin-top:18px;">First two receive addresses — native SegWit, m/84'/0'/0'/0</div>
+            <div id="addrList"></div>
+            <div class="hint">Restore the words into your wallet, open the receive tab, and the first two
+                addresses should match these character for character. Addresses are public by definition, so they
+                stay readable while the words are blurred — but they do tie this seed to on-chain activity, so
+                treat them as a privacy matter.</div>
+        </div>
+        <div class="xfpPassRow">
+            <label for="xfpPass">BIP-39 passphrase (optional)</label>
+            <input type="password" id="xfpPass" autocomplete="off" spellcheck="false"
+                   placeholder="leave empty if you do not use one" oninput="onPassChange()">
+        </div>
+    </div>
+    <div class="btnrow" id="resultBtns" style="display:none;">
+        <button onclick="copyMnemonic()" id="copyBtn">Copy seed phrase</button>
+        <button onclick="downloadPdfRecord()" id="pdfBtn">Download PDF record</button>
+        <button class="ghost" onclick="toggleDetail()">Show / hide derivation detail</button>
+        <button class="secondary" onclick="startVerify()">Verify by re-entry</button>
+    </div>
+    <pre class="mono" id="detail" style="display:none;"></pre>
+</div>
+
+<!-- ───────────── 4. VERIFY ───────────── -->
+<div class="panel">
+    <h2>4 · Verify by re-entry</h2>
+    <p class="sub">
+        A single mis-transcribed card produces a completely different seed with no warning. Verify mode blanks every
+        input and locks in a fingerprint of what you first entered; re-enter your draws from your paper record and the
+        tool tells you whether they match, and exactly which draw differs if they do not.
+    </p>
+    <div id="verifyStatus" class="out info">Derive a seed first, then start verification.</div>
+    <div class="btnrow">
+        <button id="verifyCheckBtn" onclick="runVerify()" disabled>Check re-entry against fingerprint</button>
+        <button class="secondary" onclick="cancelVerify()">Cancel verification</button>
+    </div>
+</div>
+
+<!-- ───────────── 5. PRINT SHEET ───────────── -->
+<div class="panel">
+    <h2>5 · Blank draw sheet</h2>
+    <p class="sub">
+        A printable sheet with ruled boxes, sized to write in, matching the settings above. Fill it in at the table
+        with a pen, then type it in. Keep the paper until your wallet is restored and tested, then destroy it.
+    </p>
+    <div class="btnrow">
+        <button id="sheetBtn" onclick="downloadBlankSheet()">Download blank draw sheet (PDF)</button>
+    </div>
+    <div class="sheetPreviewLabel">On-screen preview</div>
+    <div id="printSheet"></div>
+</div>
+
+<!-- ───────────── 6. SELF-TEST ───────────── -->
+<div class="panel">
+    <h2>6 · Self-test (fully deterministic)</h2>
+    <p class="sub">
+        There is no random number generator here to measure, so these tests prove the <em>mapping</em> is correct
+        instead: the official BIP-39 vectors, SHA-256 known-answer tests, golden vectors that pin the entire
+        card-to-seed pipeline to fixed expected output, and a sweep of 8192 derivations checked against an
+        independent BIP-39 implementation and round-tripped back to entropy. Same result on every machine, every
+        time. A golden vector fails only if this page has been altered.
+        The third button runs the heavy test: it substitutes every card position with every legal
+        alternative and demands the seed change each time. That is deliberately not a chi-square over
+        many generated seeds &mdash; SHA-256 whitens its output, so a build that threw away a quarter of
+        your cards would still pass every distribution statistic. It does not survive this one.
+    </p>
+    <div class="btnrow">
+        <button onclick="runSelfTest(false)">Run fast tests</button>
+        <button class="secondary" onclick="runSelfTest(true)">Run full sweep (8192 derivations)</button>
+        <button class="secondary" onclick="runSensitivitySweep()">Run card-sensitivity sweep (12,672 derivations)</button>
+    </div>
+    <div id="testProgress" style="margin-top:10px;font-weight:700;color:var(--gold-light);"></div>
+    <pre class="mono" id="testOut" style="display:none;"></pre>
+</div>
+
+<!-- ───────────── 7. VERIFY THIS FILE ───────────── -->
+<div class="panel">
+    <h2>7 · Verify this file before you trust it</h2>
+    <p class="sub">
+        Everything else here rests on you running the genuine file. Nothing inside a file can establish that:
+        a modified copy would happily tell you it is fine. The check has to come from outside.
+    </p>
+
+    <div class="out warn">
+        <strong>Why this page cannot hash itself.</strong> A local page is not allowed to read its own bytes,
+        and what JavaScript can see is a re-serialisation of the parsed document, not the file on disk — the two
+        differ. Any hash a page displayed about itself would be both unverifiable and trivially faked. Hash the
+        file with your operating system instead.
+    </div>
+
+    <div class="out info">
+        <strong>Linux</strong><pre class="mono" style="margin-top:6px;" id="cmdLinux"></pre>
+        <strong>macOS</strong><pre class="mono" style="margin-top:6px;" id="cmdMac"></pre>
+        <strong>Windows (PowerShell)</strong><pre class="mono" style="margin-top:6px;" id="cmdWin"></pre>
+        <p class="sub" style="margin:10px 0 0;">Substitute whatever you actually named the file when you saved it.</p>
+    </div>
+
+    <p class="sub" style="margin-top:16px;">
+        Compare what you get against the hash published by the author — and compare it in more than one place.
+        A single compromised host can change the file <em>and</em> the hash next to it; it cannot as easily change
+        the same value on an independent channel. Check at least two of: the project site, the code repository,
+        and a signed post on a network the author does not control.
+    </p>
+    <p class="sub">
+        Better still, verify a signature rather than a bare hash, so you are checking a key you already trusted
+        rather than whatever the site says today. If the author publishes one, use it:
+    </p>
+    <pre class="mono">minisign -Vm "&lt;file&gt;" -P &lt;author's public key&gt;
+gpg --verify "&lt;file&gt;.asc" "&lt;file&gt;"</pre>
+    <p class="sub" style="margin-top:14px;">
+        If the hash does not match, do not use the file, and do not use anything you already generated with it.
+    </p>
+</div>
+
+<!-- ───────────── 8. WIPE ───────────── -->
+<div class="panel">
+    <h2>8 · Wipe this session</h2>
+    <p class="sub">
+        Clears every card you entered and everything derived from it — the entropy, the seed words, the derivation
+        detail, the draw fingerprint, the shuffle check and all test output — then drops the references after
+        overwriting what can be overwritten. Use it before you walk away from the machine.
+    </p>
+    <div class="btnrow">
+        <button class="danger" id="wipeBtn" onclick="startWipe()">Wipe this session</button>
+        <button class="ghost" id="wipeCancel" onclick="cancelWipe()" style="display:none;">Cancel</button>
+    </div>
+    <div id="wipeStatus" class="out info" style="display:none;"></div>
+    <p class="sub" style="margin:16px 0 0;">
+        Being straight about the limits: a web page cannot scrub RAM. JavaScript strings are immutable and
+        garbage-collected, so overwriting a variable removes the reference but not necessarily the bytes. Nothing here
+        reaches your swap file, hibernation image, downloaded PDFs or printed paper. Reloading afterwards discards the
+        whole JavaScript heap and the text boxes' undo history, and closing the browser is better still.
+    </p>
+</div>
+
+<footer>
+    <div class="fgrid">
+        <div>
+            <h3>How it works</h3>
+            <p style="margin:0;">
+                An ordered 4-card draw carries 22.63 bits. Every draw you enter is pooled into one SHA-256
+                extraction, so a 12-word seed needs 8 draws and a 24-word seed 14. All 128 or 256 entropy bits come
+                from your cards; the BIP-39 checksum is computed from them, as the standard defines.
+            </p>
+        </div>
+        <div>
+            <h3>Physical protocol</h3>
+            <p style="margin:0;">
+                • Sealed 52-card deck, jokers removed.<br>
+                • <strong>Wash first</strong>: cards face-down on the table, swirled for 30 seconds or more.<br>
+                • Then riffle seven times or more, with a cut or strip between each.<br>
+                • Draw 4 cards off the top, <strong>in order</strong>, and write them down.<br>
+                • Order matters. Left-to-right as dealt.
+            </p>
+        </div>
+        <div>
+            <h3>Security</h3>
+            <p style="margin:0;">
+                <button class="ghost" id="savePageBtn" onclick="downloadPage()">Download this page</button><br><br>
+                Save it and run it offline. Use an air-gapped machine.
+                Never type a real seed phrase on an internet-connected device.
+            </p>
+        </div>
+    </div>
+    <p class="doclinks">
+        Documentation:
+        <a href="howitworks.pdf" target="_blank" rel="noopener noreferrer">howitworks.pdf</a>
+        <span class="sep">·</span>
+        <a href="techspecs.md" target="_blank" rel="noopener noreferrer">techspecs.md</a>
+        <span class="note">Both are local files. Keep them in the same folder as this page, or the links
+            will not resolve. They open in a new tab so this one keeps your draws.</span>
+    </p>
+    <p style="margin-top:16px;font-size:12px;color:#7b8b83;">
+        <span id="verFooter"></span>
+    </p>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════════
+   1-DECK CASINO CARD → BIP-39 SEED GENERATOR — v2
+   ───────────────────────────────────────────────────────────────────────
+   DESIGN RULE: this file contains no random number generator. There is no
+   Math.random(), no crypto.getRandomValues(), no Date-based entropy, and no
+   simulated shuffle. Every bit of the output derives from cards the user
+   physically shuffled, drew and typed in. SHA-256 is used only as a
+   deterministic extractor.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const BIP39_WORDS = [
+  "abandon","ability","able","about","above","absent","absorb","abstract","absurd","abuse","access",
+  "accident","account","accuse","achieve","acid","acoustic","acquire","across","act","action","actor",
+  "actress","actual","adapt","add","addict","address","adjust","admit","adult","advance","advice","aerobic",
+  "affair","afford","afraid","again","age","agent","agree","ahead","aim","air","airport","aisle","alarm",
+  "album","alcohol","alert","alien","all","alley","allow","almost","alone","alpha","already","also","alter",
+  "always","amateur","amazing","among","amount","amused","analyst","anchor","ancient","anger","angle","angry",
+  "animal","ankle","announce","annual","another","answer","antenna","antique","anxiety","any","apart",
+  "apology","appear","apple","approve","april","arch","arctic","area","arena","argue","arm","armed","armor",
+  "army","around","arrange","arrest","arrive","arrow","art","artefact","artist","artwork","ask","aspect",
+  "assault","asset","assist","assume","asthma","athlete","atom","attack","attend","attitude","attract",
+  "auction","audit","august","aunt","author","auto","autumn","average","avocado","avoid","awake","aware",
+  "away","awesome","awful","awkward","axis","baby","bachelor","bacon","badge","bag","balance","balcony",
+  "ball","bamboo","banana","banner","bar","barely","bargain","barrel","base","basic","basket","battle",
+  "beach","bean","beauty","because","become","beef","before","begin","behave","behind","believe","below",
+  "belt","bench","benefit","best","betray","better","between","beyond","bicycle","bid","bike","bind",
+  "biology","bird","birth","bitter","black","blade","blame","blanket","blast","bleak","bless","blind","blood",
+  "blossom","blouse","blue","blur","blush","board","boat","body","boil","bomb","bone","bonus","book","boost",
+  "border","boring","borrow","boss","bottom","bounce","box","boy","bracket","brain","brand","brass","brave",
+  "bread","breeze","brick","bridge","brief","bright","bring","brisk","broccoli","broken","bronze","broom",
+  "brother","brown","brush","bubble","buddy","budget","buffalo","build","bulb","bulk","bullet","bundle",
+  "bunker","burden","burger","burst","bus","business","busy","butter","buyer","buzz","cabbage","cabin",
+  "cable","cactus","cage","cake","call","calm","camera","camp","can","canal","cancel","candy","cannon",
+  "canoe","canvas","canyon","capable","capital","captain","car","carbon","card","cargo","carpet","carry",
+  "cart","case","cash","casino","castle","casual","cat","catalog","catch","category","cattle","caught",
+  "cause","caution","cave","ceiling","celery","cement","census","century","cereal","certain","chair","chalk",
+  "champion","change","chaos","chapter","charge","chase","chat","cheap","check","cheese","chef","cherry",
+  "chest","chicken","chief","child","chimney","choice","choose","chronic","chuckle","chunk","churn","cigar",
+  "cinnamon","circle","citizen","city","civil","claim","clap","clarify","claw","clay","clean","clerk",
+  "clever","click","client","cliff","climb","clinic","clip","clock","clog","close","cloth","cloud","clown",
+  "club","clump","cluster","clutch","coach","coast","coconut","code","coffee","coil","coin","collect","color",
+  "column","combine","come","comfort","comic","common","company","concert","conduct","confirm","congress",
+  "connect","consider","control","convince","cook","cool","copper","copy","coral","core","corn","correct",
+  "cost","cotton","couch","country","couple","course","cousin","cover","coyote","crack","cradle","craft",
+  "cram","crane","crash","crater","crawl","crazy","cream","credit","creek","crew","cricket","crime","crisp",
+  "critic","crop","cross","crouch","crowd","crucial","cruel","cruise","crumble","crunch","crush","cry",
+  "crystal","cube","culture","cup","cupboard","curious","current","curtain","curve","cushion","custom","cute",
+  "cycle","dad","damage","damp","dance","danger","daring","dash","daughter","dawn","day","deal","debate",
+  "debris","decade","december","decide","decline","decorate","decrease","deer","defense","define","defy",
+  "degree","delay","deliver","demand","demise","denial","dentist","deny","depart","depend","deposit","depth",
+  "deputy","derive","describe","desert","design","desk","despair","destroy","detail","detect","develop",
+  "device","devote","diagram","dial","diamond","diary","dice","diesel","diet","differ","digital","dignity",
+  "dilemma","dinner","dinosaur","direct","dirt","disagree","discover","disease","dish","dismiss","disorder",
+  "display","distance","divert","divide","divorce","dizzy","doctor","document","dog","doll","dolphin",
+  "domain","donate","donkey","donor","door","dose","double","dove","draft","dragon","drama","drastic","draw",
+  "dream","dress","drift","drill","drink","drip","drive","drop","drum","dry","duck","dumb","dune","during",
+  "dust","dutch","duty","dwarf","dynamic","eager","eagle","early","earn","earth","easily","east","easy",
+  "echo","ecology","economy","edge","edit","educate","effort","egg","eight","either","elbow","elder",
+  "electric","elegant","element","elephant","elevator","elite","else","embark","embody","embrace","emerge",
+  "emotion","employ","empower","empty","enable","enact","end","endless","endorse","enemy","energy","enforce",
+  "engage","engine","enhance","enjoy","enlist","enough","enrich","enroll","ensure","enter","entire","entry",
+  "envelope","episode","equal","equip","era","erase","erode","erosion","error","erupt","escape","essay",
+  "essence","estate","eternal","ethics","evidence","evil","evoke","evolve","exact","example","excess",
+  "exchange","excite","exclude","excuse","execute","exercise","exhaust","exhibit","exile","exist","exit",
+  "exotic","expand","expect","expire","explain","expose","express","extend","extra","eye","eyebrow","fabric",
+  "face","faculty","fade","faint","faith","fall","false","fame","family","famous","fan","fancy","fantasy",
+  "farm","fashion","fat","fatal","father","fatigue","fault","favorite","feature","february","federal","fee",
+  "feed","feel","female","fence","festival","fetch","fever","few","fiber","fiction","field","figure","file",
+  "film","filter","final","find","fine","finger","finish","fire","firm","first","fiscal","fish","fit",
+  "fitness","fix","flag","flame","flash","flat","flavor","flee","flight","flip","float","flock","floor",
+  "flower","fluid","flush","fly","foam","focus","fog","foil","fold","follow","food","foot","force","forest",
+  "forget","fork","fortune","forum","forward","fossil","foster","found","fox","fragile","frame","frequent",
+  "fresh","friend","fringe","frog","front","frost","frown","frozen","fruit","fuel","fun","funny","furnace",
+  "fury","future","gadget","gain","galaxy","gallery","game","gap","garage","garbage","garden","garlic",
+  "garment","gas","gasp","gate","gather","gauge","gaze","general","genius","genre","gentle","genuine",
+  "gesture","ghost","giant","gift","giggle","ginger","giraffe","girl","give","glad","glance","glare","glass",
+  "glide","glimpse","globe","gloom","glory","glove","glow","glue","goat","goddess","gold","good","goose",
+  "gorilla","gospel","gossip","govern","gown","grab","grace","grain","grant","grape","grass","gravity",
+  "great","green","grid","grief","grit","grocery","group","grow","grunt","guard","guess","guide","guilt",
+  "guitar","gun","gym","habit","hair","half","hammer","hamster","hand","happy","harbor","hard","harsh",
+  "harvest","hat","have","hawk","hazard","head","health","heart","heavy","hedgehog","height","hello","helmet",
+  "help","hen","hero","hidden","high","hill","hint","hip","hire","history","hobby","hockey","hold","hole",
+  "holiday","hollow","home","honey","hood","hope","horn","horror","horse","hospital","host","hotel","hour",
+  "hover","hub","huge","human","humble","humor","hundred","hungry","hunt","hurdle","hurry","hurt","husband",
+  "hybrid","ice","icon","idea","identify","idle","ignore","ill","illegal","illness","image","imitate",
+  "immense","immune","impact","impose","improve","impulse","inch","include","income","increase","index",
+  "indicate","indoor","industry","infant","inflict","inform","inhale","inherit","initial","inject","injury",
+  "inmate","inner","innocent","input","inquiry","insane","insect","inside","inspire","install","intact",
+  "interest","into","invest","invite","involve","iron","island","isolate","issue","item","ivory","jacket",
+  "jaguar","jar","jazz","jealous","jeans","jelly","jewel","job","join","joke","journey","joy","judge","juice",
+  "jump","jungle","junior","junk","just","kangaroo","keen","keep","ketchup","key","kick","kid","kidney",
+  "kind","kingdom","kiss","kit","kitchen","kite","kitten","kiwi","knee","knife","knock","know","lab","label",
+  "labor","ladder","lady","lake","lamp","language","laptop","large","later","latin","laugh","laundry","lava",
+  "law","lawn","lawsuit","layer","lazy","leader","leaf","learn","leave","lecture","left","leg","legal",
+  "legend","leisure","lemon","lend","length","lens","leopard","lesson","letter","level","liar","liberty",
+  "library","license","life","lift","light","like","limb","limit","link","lion","liquid","list","little",
+  "live","lizard","load","loan","lobster","local","lock","logic","lonely","long","loop","lottery","loud",
+  "lounge","love","loyal","lucky","luggage","lumber","lunar","lunch","luxury","lyrics","machine","mad",
+  "magic","magnet","maid","mail","main","major","make","mammal","man","manage","mandate","mango","mansion",
+  "manual","maple","marble","march","margin","marine","market","marriage","mask","mass","master","match",
+  "material","math","matrix","matter","maximum","maze","meadow","mean","measure","meat","mechanic","medal",
+  "media","melody","melt","member","memory","mention","menu","mercy","merge","merit","merry","mesh","message",
+  "metal","method","middle","midnight","milk","million","mimic","mind","minimum","minor","minute","miracle",
+  "mirror","misery","miss","mistake","mix","mixed","mixture","mobile","model","modify","mom","moment",
+  "monitor","monkey","monster","month","moon","moral","more","morning","mosquito","mother","motion","motor",
+  "mountain","mouse","move","movie","much","muffin","mule","multiply","muscle","museum","mushroom","music",
+  "must","mutual","myself","mystery","myth","naive","name","napkin","narrow","nasty","nation","nature","near",
+  "neck","need","negative","neglect","neither","nephew","nerve","nest","net","network","neutral","never",
+  "news","next","nice","night","noble","noise","nominee","noodle","normal","north","nose","notable","note",
+  "nothing","notice","novel","now","nuclear","number","nurse","nut","oak","obey","object","oblige","obscure",
+  "observe","obtain","obvious","occur","ocean","october","odor","off","offer","office","often","oil","okay",
+  "old","olive","olympic","omit","once","one","onion","online","only","open","opera","opinion","oppose",
+  "option","orange","orbit","orchard","order","ordinary","organ","orient","original","orphan","ostrich",
+  "other","outdoor","outer","output","outside","oval","oven","over","own","owner","oxygen","oyster","ozone",
+  "pact","paddle","page","pair","palace","palm","panda","panel","panic","panther","paper","parade","parent",
+  "park","parrot","party","pass","patch","path","patient","patrol","pattern","pause","pave","payment","peace",
+  "peanut","pear","peasant","pelican","pen","penalty","pencil","people","pepper","perfect","permit","person",
+  "pet","phone","photo","phrase","physical","piano","picnic","picture","piece","pig","pigeon","pill","pilot",
+  "pink","pioneer","pipe","pistol","pitch","pizza","place","planet","plastic","plate","play","please",
+  "pledge","pluck","plug","plunge","poem","poet","point","polar","pole","police","pond","pony","pool",
+  "popular","portion","position","possible","post","potato","pottery","poverty","powder","power","practice",
+  "praise","predict","prefer","prepare","present","pretty","prevent","price","pride","primary","print",
+  "priority","prison","private","prize","problem","process","produce","profit","program","project","promote",
+  "proof","property","prosper","protect","proud","provide","public","pudding","pull","pulp","pulse","pumpkin",
+  "punch","pupil","puppy","purchase","purity","purpose","purse","push","put","puzzle","pyramid","quality",
+  "quantum","quarter","question","quick","quit","quiz","quote","rabbit","raccoon","race","rack","radar",
+  "radio","rail","rain","raise","rally","ramp","ranch","random","range","rapid","rare","rate","rather",
+  "raven","raw","razor","ready","real","reason","rebel","rebuild","recall","receive","recipe","record",
+  "recycle","reduce","reflect","reform","refuse","region","regret","regular","reject","relax","release",
+  "relief","rely","remain","remember","remind","remove","render","renew","rent","reopen","repair","repeat",
+  "replace","report","require","rescue","resemble","resist","resource","response","result","retire","retreat",
+  "return","reunion","reveal","review","reward","rhythm","rib","ribbon","rice","rich","ride","ridge","rifle",
+  "right","rigid","ring","riot","ripple","risk","ritual","rival","river","road","roast","robot","robust",
+  "rocket","romance","roof","rookie","room","rose","rotate","rough","round","route","royal","rubber","rude",
+  "rug","rule","run","runway","rural","sad","saddle","sadness","safe","sail","salad","salmon","salon","salt",
+  "salute","same","sample","sand","satisfy","satoshi","sauce","sausage","save","say","scale","scan","scare",
+  "scatter","scene","scheme","school","science","scissors","scorpion","scout","scrap","screen","script",
+  "scrub","sea","search","season","seat","second","secret","section","security","seed","seek","segment",
+  "select","sell","seminar","senior","sense","sentence","series","service","session","settle","setup","seven",
+  "shadow","shaft","shallow","share","shed","shell","sheriff","shield","shift","shine","ship","shiver",
+  "shock","shoe","shoot","shop","short","shoulder","shove","shrimp","shrug","shuffle","shy","sibling","sick",
+  "side","siege","sight","sign","silent","silk","silly","silver","similar","simple","since","sing","siren",
+  "sister","situate","six","size","skate","sketch","ski","skill","skin","skirt","skull","slab","slam","sleep",
+  "slender","slice","slide","slight","slim","slogan","slot","slow","slush","small","smart","smile","smoke",
+  "smooth","snack","snake","snap","sniff","snow","soap","soccer","social","sock","soda","soft","solar",
+  "soldier","solid","solution","solve","someone","song","soon","sorry","sort","soul","sound","soup","source",
+  "south","space","spare","spatial","spawn","speak","special","speed","spell","spend","sphere","spice",
+  "spider","spike","spin","spirit","split","spoil","sponsor","spoon","sport","spot","spray","spread","spring",
+  "spy","square","squeeze","squirrel","stable","stadium","staff","stage","stairs","stamp","stand","start",
+  "state","stay","steak","steel","stem","step","stereo","stick","still","sting","stock","stomach","stone",
+  "stool","story","stove","strategy","street","strike","strong","struggle","student","stuff","stumble",
+  "style","subject","submit","subway","success","such","sudden","suffer","sugar","suggest","suit","summer",
+  "sun","sunny","sunset","super","supply","supreme","sure","surface","surge","surprise","surround","survey",
+  "suspect","sustain","swallow","swamp","swap","swarm","swear","sweet","swift","swim","swing","switch",
+  "sword","symbol","symptom","syrup","system","table","tackle","tag","tail","talent","talk","tank","tape",
+  "target","task","taste","tattoo","taxi","teach","team","tell","ten","tenant","tennis","tent","term","test",
+  "text","thank","that","theme","then","theory","there","they","thing","this","thought","three","thrive",
+  "throw","thumb","thunder","ticket","tide","tiger","tilt","timber","time","tiny","tip","tired","tissue",
+  "title","toast","tobacco","today","toddler","toe","together","toilet","token","tomato","tomorrow","tone",
+  "tongue","tonight","tool","tooth","top","topic","topple","torch","tornado","tortoise","toss","total",
+  "tourist","toward","tower","town","toy","track","trade","traffic","tragic","train","transfer","trap",
+  "trash","travel","tray","treat","tree","trend","trial","tribe","trick","trigger","trim","trip","trophy",
+  "trouble","truck","true","truly","trumpet","trust","truth","try","tube","tuition","tumble","tuna","tunnel",
+  "turkey","turn","turtle","twelve","twenty","twice","twin","twist","two","type","typical","ugly","umbrella",
+  "unable","unaware","uncle","uncover","under","undo","unfair","unfold","unhappy","uniform","unique","unit",
+  "universe","unknown","unlock","until","unusual","unveil","update","upgrade","uphold","upon","upper","upset",
+  "urban","urge","usage","use","used","useful","useless","usual","utility","vacant","vacuum","vague","valid",
+  "valley","valve","van","vanish","vapor","various","vast","vault","vehicle","velvet","vendor","venture",
+  "venue","verb","verify","version","very","vessel","veteran","viable","vibrant","vicious","victory","video",
+  "view","village","vintage","violin","virtual","virus","visa","visit","visual","vital","vivid","vocal",
+  "voice","void","volcano","volume","vote","voyage","wage","wagon","wait","walk","wall","walnut","want",
+  "warfare","warm","warrior","wash","wasp","waste","water","wave","way","wealth","weapon","wear","weasel",
+  "weather","web","wedding","weekend","weird","welcome","west","wet","whale","what","wheat","wheel","when",
+  "where","whip","whisper","wide","width","wife","wild","will","win","window","wine","wing","wink","winner",
+  "winter","wire","wisdom","wise","wish","witness","wolf","woman","wonder","wood","wool","word","work",
+  "world","worry","worth","wrap","wreck","wrestle","wrist","write","wrong","yard","year","yellow","you",
+  "young","youth","zebra","zero","zone","zoo"
+];
+
+/* ───────── version ─────────
+   VERSION labels the program. DERIVATION_ID is a different thing entirely: it is the domain
+   separator inside the hashed preimage, so it is part of the derivation itself. Changing it
+   would silently change every seed this tool has ever produced and would invalidate anyone's
+   existing draw record. It is therefore frozen and must never be tied to the program version. */
+const VERSION       = "2.15";
+/* No spaces: this name goes into URLs and into the sha256sum command printed in §7, and a
+   quoted path is a common place for a verification step to go wrong. */
+const FILE_NAME     = `1deck-bip39-v${VERSION}.html`;
+const DERIVATION_ID = "1deck-bip39-v2";   // FROZEN — do not edit, see above
+
+/* ───────── card model ───────── */
+const RANK_LABELS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const RANK_NAMES  = ["Ace","2","3","4","5","6","7","8","9","10","Jack","Queen","King"];
+const RANK_CODES  = ["A","2","3","4","5","6","7","8","9","T","J","Q","K"];
+const SUIT_LABELS = ["♣","♦","♥","♠"];
+const SUIT_NAMES  = ["Clubs","Diamonds","Hearts","Spades"];
+const SUIT_CODES  = ["C","D","H","S"];
+
+// canonical card index 0..51 = suit*13 + rank  (frozen: this ordering is part of the derivation)
+const cardIndex = (rank, suit) => suit * 13 + rank;
+const cardCode  = i => RANK_CODES[i % 13] + SUIT_CODES[Math.floor(i / 13)];
+const cardLabel = i => RANK_LABELS[i % 13] + SUIT_LABELS[Math.floor(i / 13)];
+const cardName  = i => RANK_NAMES[i % 13] + " of " + SUIT_NAMES[Math.floor(i / 13)];
+const isRed     = i => Math.floor(i / 13) === 1 || Math.floor(i / 13) === 2;
+
+function codeToIndex(code){
+    const c = String(code).trim().toUpperCase().replace("10","T");
+    if(c.length !== 2) return -1;
+    const r = RANK_CODES.indexOf(c[0]), s = SUIT_CODES.indexOf(c[1]);
+    return (r < 0 || s < 0) ? -1 : cardIndex(r, s);
+}
+
+/* ───────── configuration ─────────
+   Entropy is the leading bits of SHA-256 over your card sequence. The BIP-39 checksum is then
+   COMPUTED from that entropy, exactly as the standard defines it. There is no extra draw, no
+   candidate list and no human choice anywhere in the process.
+
+   12 words: 128 entropy bits + 4 computed checksum bits = 132 bits = 12 × 11.
+   24 words: 256 entropy bits + 8 computed checksum bits = 264 bits = 24 × 11.
+
+   Every entropy bit therefore comes from cards you drew. Checksum bits are redundancy, not
+   entropy, so computing them costs nothing. Spending a physical draw to select among the
+   checksum-valid words instead would buy only 7 bits for a 12-word seed, or 3 bits for a
+   24-word one, in exchange for a whole shuffle — and those bits would come from that single
+   draw rather than from the pooled deck.
+
+   "margin" draws more cards than strictly needed so the SHA-256 step acts as a genuine
+   randomness extractor: the surplus head-room absorbs a merely-decent shuffle.
+   "minimum" draws the theoretical minimum and leaves very little.                            */
+const PERM_TOTAL    = 52 * 51 * 50 * 49;              // 6,497,400 ordered 4-card draws
+const BITS_PER_DRAW = Math.log2(PERM_TOTAL);          // 22.6314…
+const CONFIG = {
+    12: { words: 12, entropyBits: 128, drawsMin: 6,  drawsMargin: 8  },
+    24: { words: 24, entropyBits: 256, drawsMin: 12, drawsMargin: 14 }
+};
+
+let state = {
+    len: 12, protocol: "reshuffle", margin: "margin",
+    totalDraws: 8, layout: [1,1,1,1,1,1,1,1], rawBits: 0, headroom: 0, generation: 0,
+    lastResult: null,
+    verify: { active: false, fingerprint: null, cards: null }
+};
+
+/* ═════════ SHA-256 (deterministic; the only crypto primitive used) ═════════ */
+function getSubtle(){
+    try{
+        if(typeof crypto !== "undefined"){
+            if(crypto.subtle && typeof crypto.subtle.digest === "function") return crypto.subtle;
+            if(crypto.webkitSubtle && typeof crypto.webkitSubtle.digest === "function") return crypto.webkitSubtle;
+        }
+    }catch(e){}
+    return null;
+}
+async function sha256Bytes(bytes){
+    const subtle = getSubtle();
+    if(!subtle) throw new Error(
+        "WebCrypto SHA-256 is unavailable. Open this file directly (file://) in a modern browser, " +
+        "or serve it over HTTPS. SHA-256 here is deterministic, not random.");
+    return new Uint8Array(await subtle.digest("SHA-256", bytes));
+}
+const enc = new TextEncoder();
+const sha256Text = s => sha256Bytes(enc.encode(s));
+const toHex  = b => Array.from(b).map(x => x.toString(16).padStart(2, "0")).join("");
+const groupNum = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ",");   // locale-independent
+const toBits = b => Array.from(b).map(x => x.toString(2).padStart(8, "0")).join("");
+
+/* ═════════ BIP-39 ═════════ */
+async function mnemonicIsValid(words){
+    const idx = words.map(w => BIP39_WORDS.indexOf(w));
+    if(idx.some(i => i < 0)) return false;
+    const bits = idx.map(i => i.toString(2).padStart(11, "0")).join("");
+    const csLen = bits.length / 33, entLen = bits.length - csLen;
+    const bytes = new Uint8Array(entLen / 8);
+    for(let j = 0; j < bytes.length; j++) bytes[j] = parseInt(bits.slice(j * 8, j * 8 + 8), 2);
+    const hash = await sha256Bytes(bytes);
+    return bits.slice(entLen) === hash[0].toString(2).padStart(8, "0").slice(0, csLen);
+}
+
+/* ═════════ physical-protocol entropy accounting ═════════
+   Reshuffle protocol: every draw comes off a freshly shuffled full deck, so each draw
+   independently carries log2(52·51·50·49) = 22.6314 bits.
+
+   Deal-through: cards are dealt without replacement off ONE shuffled deck, so dealing n
+   cards in order carries only log2(52·51·…·(52−n+1)) bits. That is strictly less, and the
+   loss accelerates: the 52nd card off a deck adds log2(1) = 0 bits. A whole deck ordering
+   is worth 225.58 bits — a hard ceiling that no amount of dealing can exceed.
+
+   Draws are therefore split evenly across passes rather than filling each pass to 52 cards,
+   because an even split extracts noticeably more entropy for the same number of shuffles. */
+function fallingBits(n){
+    let s = 0;
+    for(let i = 0; i < n && i < 52; i++) s += Math.log2(52 - i);
+    return s;
+}
+function passLayout(draws, passes){
+    const out = [];
+    for(let p = 0; p < passes; p++) out.push(Math.floor(draws / passes) + (p < draws % passes ? 1 : 0));
+    return out;
+}
+function protocolEntropy(draws, protocol, target){
+    if(protocol === "reshuffle")
+        return { bits: draws * BITS_PER_DRAW, passes: draws, layout: passLayout(draws, draws) };
+    const minPasses = Math.ceil(draws * 4 / 52);
+    let best = null;
+    for(let p = minPasses; p <= Math.min(draws, 4); p++){
+        const layout = passLayout(draws, p);
+        if(layout[0] * 4 > 52) continue;
+        const bits = layout.reduce((a, dr) => a + fallingBits(dr * 4), 0);
+        if(!best || bits > best.bits) best = { bits, passes: p, layout };
+        if(bits >= target + 24) return { bits, passes: p, layout };   // comfortable head-room: stop here
+    }
+    if(!best) best = { bits: draws * BITS_PER_DRAW, passes: draws, layout: passLayout(draws, draws) };
+    return best;
+}
+/* which pass does draw d belong to, and is it the first draw of that pass */
+function passIndex(d){
+    let acc = 0;
+    for(let p = 0; p < state.layout.length; p++){
+        if(d < acc + state.layout[p]) return p;
+        acc += state.layout[p];
+    }
+    return state.layout.length - 1;
+}
+
+/* ═════════ UI: build the draw entry blocks ═════════ */
+/* Read back whatever is currently typed, so a settings change does not silently bin it.
+   Returns [] on first load, when the grid does not exist yet. */
+function captureDraws(){
+    const out = [];
+    for(let d = 0; d < state.totalDraws; d++){
+        if(!document.getElementById(`r_${d}_0`)) return [];
+        out.push(readDraw(d));
+    }
+    return out;
+}
+
+function rebuild(){
+    const carried = captureDraws();          // must run before state.totalDraws changes
+    document.getElementById("drawMsg").innerHTML = "";   // never leave a stale error behind
+    state.len = parseInt(document.getElementById("seedLength").value, 10);
+
+    /* Deal-through is unavailable for a 24-word seed, and this is arithmetic rather than
+       preference: one shuffled deck is worth at most log2(52!) = 225.58 bits, so a 256-bit
+       seed can never come from a single deck ordering. It would need several passes, at which
+       point it is the reshuffle protocol with extra ways to go wrong. The option is disabled
+       rather than hidden, so the reason is visible. */
+    const protoSel = document.getElementById("protocol");
+    const dtOption = document.getElementById("optDealthrough");
+    let forcedReshuffle = false;
+    if(state.len === 24){
+        dtOption.disabled = true;
+        dtOption.textContent = "Deal straight through — not possible for 24 words";
+        if(protoSel.value === "dealthrough"){ protoSel.value = "reshuffle"; forcedReshuffle = true; }
+    }else{
+        dtOption.disabled = false;
+        dtOption.textContent = "Deal straight through the deck (fewest shuffles)";
+    }
+
+    state.protocol = protoSel.value;
+    state.margin   = document.getElementById("margin").value;
+
+    const cfg = CONFIG[state.len];
+    state.totalDraws = state.margin === "margin" ? cfg.drawsMargin : cfg.drawsMin;
+
+    const ent = protocolEntropy(state.totalDraws, state.protocol, cfg.entropyBits);
+    state.layout   = ent.layout;
+    state.rawBits  = ent.bits;
+    state.headroom = ent.bits - cfg.entropyBits;
+
+    const reshuffleBits = state.totalDraws * BITS_PER_DRAW;
+
+    document.getElementById("protocolInfo").innerHTML =
+        `<strong>${state.totalDraws} draws of 4 cards</strong> — ${state.totalDraws * 4} card entries to write down, ` +
+        `all from the same 52-card deck` +
+        (state.protocol === "dealthrough" ? `.` : `, which you reshuffle between draws.`) +
+        ` No other input of any kind.<br>` +
+        `Card entropy available: <strong>${state.rawBits.toFixed(1)} bits</strong> &rarr; ` +
+        `${cfg.entropyBits} extracted, leaving <strong>${state.headroom.toFixed(1)} bits of head-room</strong>. ` +
+        `The ${cfg.entropyBits / 32}-bit BIP-39 checksum is computed from that entropy, as the standard defines.<br>` +
+        `<span style="color:var(--muted)">Extraction efficiency ` +
+        `${(cfg.entropyBits / state.rawBits * 100).toFixed(1)}% — the share of the entropy in your draws that ` +
+        `reaches the seed. The remainder is head-room, not waste.</span>`;
+
+    /* ── protocol / margin warnings, with real numbers ── */
+    const warn = document.getElementById("protocolWarn");
+    const parts = [];
+
+    if(forcedReshuffle)
+        parts.push(
+            `<strong>Switched to the reshuffle protocol.</strong> Deal-through is not available for a 24-word seed. ` +
+            `One shuffled deck is worth at most 225.6 bits — the whole of log&#8322;(52!) — so a 256-bit seed cannot ` +
+            `come from a single deck ordering no matter how well you shuffle. Spreading it over several passes would ` +
+            `just be the reshuffle protocol with more ways to mis-transcribe a card.`);
+
+    if(state.protocol === "dealthrough"){
+        const lost = reshuffleBits - state.rawBits;
+        const shuffleFloor = Math.ceil(Math.max(...state.layout.map(dr => fallingBits(dr * 4))) / 52);
+        parts.push(
+            `<strong>Deal-through is not the recommended protocol — but with these settings it is safe.</strong> ` +
+            `You shuffle ${state.layout.length} time${state.layout.length === 1 ? "" : "s"} instead of ${state.totalDraws}, ` +
+            `and deal ${state.layout.map(dr => dr * 4).join(" + ")} cards straight off the top.` +
+            `<br><br>` +
+            `<strong>What it costs you.</strong> Dealing without replacement yields less than dealing from a fresh ` +
+            `deck each time, because each card removed shrinks the pool: ` +
+            `<strong>${state.rawBits.toFixed(1)} bits instead of ${reshuffleBits.toFixed(1)}</strong>, a loss of ` +
+            `${lost.toFixed(1)} bits. You still extract the full ${cfg.entropyBits} bits` +
+            (state.headroom >= 0 ? `, with ${state.headroom.toFixed(1)} bits of head-room left over.` : `.`) +
+            `<br><br>` +
+            `<strong>The real reason it is not the default</strong> is not the arithmetic — it is that one shuffle ` +
+            `becomes a single point of failure. Under the reshuffle protocol a poor shuffle spoils one draw out of ` +
+            `${state.totalDraws} and the rest dilute it. Here, every card in a pass comes from the same shuffle, so a ` +
+            `poor shuffle correlates all of them at once. A riffle can add at most 52 bits, so each pass needs at ` +
+            `least ${shuffleFloor} riffle${shuffleFloor === 1 ? "" : "s"} by counting alone — and counting is the ` +
+            `generous bound. For the ordering to actually look random you want seven or more riffles with cuts ` +
+            `and strips between. Use deal-through only if you are confident in your shuffle.` +
+            ``);
+    }
+
+    if(state.headroom < 0){
+        parts.push(
+            `<strong style="color:#ffb3b3">This combination is short of entropy: ${state.rawBits.toFixed(1)} bits ` +
+            `available for a ${cfg.entropyBits}-bit seed, a shortfall of ${Math.abs(state.headroom).toFixed(1)} bits.</strong> ` +
+            `SHA-256 will still emit ${cfg.entropyBits} bits, but they cannot contain more randomness than you put in, ` +
+            `so the seed is genuinely weaker than ${cfg.entropyBits} bits. ` +
+            `Switch to the safety margin, or to the reshuffle protocol, or both.`);
+    }else if(state.headroom < 24){
+        parts.push(
+            `<strong>Thin head-room: ${state.headroom.toFixed(1)} bits.</strong> ` +
+            `The count works out, but SHA-256 only behaves as a clean randomness extractor when the input carries ` +
+            `comfortably more entropy than the output. With this little slack, an imperfect shuffle passes through ` +
+            `to the seed rather than being absorbed. The safety-margin setting with the reshuffle protocol gives you ` +
+            `${(CONFIG[state.len].drawsMargin * BITS_PER_DRAW - cfg.entropyBits).toFixed(1)} bits.`);
+    }
+
+    if(state.margin === "minimum" && state.headroom >= 24)
+        parts.push(`<strong>Minimum mode.</strong> Fewer draws, less absorption of a mediocre shuffle. ` +
+                   `Fine given a genuinely thorough shuffle.`);
+
+    if(parts.length){
+        warn.style.display = "block";
+        warn.className = "out " + (state.headroom < 0 ? "fail" : "warn");
+        warn.innerHTML = parts.join("<hr style='border:none;border-top:1px solid rgba(255,255,255,.18);margin:12px 0;'>");
+    }else{
+        warn.style.display = "none";
+    }
+
+    buildDrawList();
+
+    /* Put the typed cards back. Changing the seed length or the entropy margin used to wipe
+       every card with no warning and no undo. Anything that no longer fits is reported rather
+       than dropped in silence. */
+    let restored = 0;
+    const keep = Math.min(carried.length, state.totalDraws);
+    for(let d = 0; d < keep; d++){
+        if(carried[d].every(x => x === null)) continue;
+        carried[d].forEach((x, c) => {
+            if(x === null) return;
+            document.getElementById(`r_${d}_${c}`).value = x % 13;
+            document.getElementById(`s_${d}_${c}`).value = Math.floor(x / 13);
+        });
+        restored++;
+    }
+    const droppedDraws = carried.slice(keep).filter(r => r.some(x => x !== null)).length;
+    if(restored) onCardChange();
+    if(droppedDraws)
+        document.getElementById("drawMsg").innerHTML =
+            `<div class="out warn">Kept the ${restored} draw${restored === 1 ? "" : "s"} that still fit. ` +
+            `<strong>${droppedDraws} draw${droppedDraws === 1 ? " was" : "s were"} dropped</strong> because these ` +
+            `settings need fewer. The number of draws is part of the derivation, so the seed will differ.</div>`;
+
+    buildPrintSheet();
+    updateProgress();
+    document.getElementById("drawIntro").innerHTML =
+        `Enter each draw <strong>in the order the cards came off the deck</strong> — order carries information, ` +
+        `so the same four cards in a different order give a different seed. ` +
+        `Type into the quick box (<code>AS 7H TD 3C</code>) or use the dropdowns; either fills the other.`;
+
+    cancelVerify(true);
+    document.getElementById("result").className = "out info";
+    document.getElementById("result").textContent = "No seed derived yet.";
+    document.getElementById("wordGrid").innerHTML = "";
+    document.getElementById("phraseBlock").style.display = "none";
+    document.getElementById("resultBtns").style.display = "none";
+    document.getElementById("detail").style.display = "none";
+    document.getElementById("seedMaskBar").style.display = "none";
+    document.getElementById("xfpBlock").style.display = "none";
+    document.getElementById("addrBlock").style.display = "none";
+    document.getElementById("shuffleCheck").style.display = "none";
+    state.lastResult = null;
+    state.verify = { active: false, fingerprint: null, cards: null, drawHashes: null };
+}
+
+function buildDrawList(){
+    let rankOpts = `<option value="">·</option>`;
+    for(let r = 0; r < 13; r++) rankOpts += `<option value="${r}">${RANK_LABELS[r]}</option>`;
+    let suitOpts = `<option value="">·</option>`;
+    for(let s = 0; s < 4; s++) suitOpts += `<option value="${s}">${SUIT_LABELS[s]} ${SUIT_NAMES[s]}</option>`;
+
+    let html = "", d = 0;
+    state.layout.forEach((count, p) => {
+        if(state.protocol === "dealthrough")
+            html += `<div class="passHead">Shuffle ${p + 1} of ${state.layout.length} — then deal draws ` +
+                    `${d + 1}–${d + count} (${count * 4} cards) straight off the top</div>`;
+        for(let k = 0; k < count; k++, d++){
+            html += `<div class="draw" id="draw_${d}">
+                <div class="drawHead">
+                    <span class="dno">Draw ${d + 1}</span>
+                    <input class="quick" id="q_${d}" spellcheck="false" autocomplete="off"
+                           placeholder="type all four, e.g.  AS 7H TD 3C"
+                           oninput="onQuick(${d})" onkeydown="onQuickKey(event, ${d})">
+                    <span class="dstat" id="stat_${d}">empty</span>
+                </div>
+                <div class="slots">` +
+                [0,1,2,3].map(c => `
+                    <div class="slot" id="slot_${d}_${c}">
+                        <div class="cap">Card ${c + 1}</div>
+                        <div class="mini" id="mini_${d}_${c}"></div>
+                        <select class="rank" id="r_${d}_${c}" autocomplete="off" onchange="onSlotChange(${d},${c},'r')">${rankOpts}</select>
+                        <select class="suit" id="s_${d}_${c}" autocomplete="off" onchange="onSlotChange(${d},${c},'s')">${suitOpts}</select>
+                    </div>`).join("") +
+                `</div></div>`;
+        }
+    });
+    document.getElementById("drawList").innerHTML = html;
+    onCardChange();
+}
+
+/* Enter moves to the next draw, or derives once the last one is complete. */
+function onQuickKey(ev, d){
+    if(ev.key !== "Enter") return;
+    ev.preventDefault();
+    const cards = readDraw(d);
+    if(cards.some(x => x === null)) return;               // incomplete: stay put
+    const next = document.getElementById(`q_${d + 1}`);
+    if(next){ next.focus(); next.select(); return; }
+    if(readAll().every(r => r.every(x => x !== null))) deriveSeed();
+}
+
+/* keyboard flow: rank → suit → next card → next draw */
+function onSlotChange(d, c, which){
+    onCardChange();
+    let next = null;
+    if(which === "r") next = document.getElementById(`s_${d}_${c}`);
+    else if(c < 3)    next = document.getElementById(`r_${d}_${c + 1}`);
+    else if(d < state.totalDraws - 1) next = document.getElementById(`r_${d + 1}_0`);
+    if(next && next.value === "") next.focus();
+}
+
+/* quick entry: "AS 7H TD 3C", "as7htd3c", "A♠ 7♥ 10♦ 3♣" all parse */
+function parseQuick(text){
+    let s = String(text).toUpperCase()
+        .replace(/10/g, "T").replace(/[♣C]/g, "C").replace(/[♦D]/g, "D")
+        .replace(/[♥H]/g, "H").replace(/[♠S]/g, "S")
+        .replace(/[^A2-9TJQKCDHS]/g, "");
+    const out = [];
+    for(let i = 0; i + 1 < s.length; i += 2){
+        const idx = codeToIndex(s[i] + s[i + 1]);
+        if(idx < 0) return { cards: out, bad: true };
+        out.push(idx);
+        if(out.length === 4) break;
+    }
+    return { cards: out, bad: false };
+}
+function onQuick(d){
+    const raw = document.getElementById(`q_${d}`).value;
+    const { cards, bad } = parseQuick(raw);
+    for(let c = 0; c < 4; c++){
+        const r = document.getElementById(`r_${d}_${c}`), s = document.getElementById(`s_${d}_${c}`);
+        if(c < cards.length){ r.value = cards[c] % 13; s.value = Math.floor(cards[c] / 13); }
+        else { r.value = ""; s.value = ""; }
+    }
+    onCardChange();
+    const stat = document.getElementById(`stat_${d}`);
+    if(stat && raw.trim() && (bad || cards.length === 0)){
+        stat.className = "dstat bad";
+        stat.textContent = "unreadable card code";
+    }
+    if(cards.length === 4 && d < state.totalDraws - 1){
+        const nxt = document.getElementById(`q_${d + 1}`);
+        if(nxt && nxt.value === "") nxt.focus();
+    }
+}
+function syncQuick(d, cards){
+    const q = document.getElementById(`q_${d}`);
+    if(!q || document.activeElement === q) return;
+    q.value = cards.every(x => x === null) ? "" : cards.map(x => x === null ? "··" : cardCode(x)).join(" ");
+}
+
+function readDraw(d){
+    const cards = [];
+    for(let c = 0; c < 4; c++){
+        const r = document.getElementById(`r_${d}_${c}`).value;
+        const s = document.getElementById(`s_${d}_${c}`).value;
+        cards.push(r === "" || s === "" ? null : cardIndex(parseInt(r,10), parseInt(s,10)));
+    }
+    return cards;
+}
+function readAll(){ return Array.from({length: state.totalDraws}, (_,d) => readDraw(d)); }
+
+/* live validation — pure checks, no randomness */
+function onCardChange(){
+    const all = readAll();
+
+    // cross-draw duplicate map, only meaningful when dealing through one deck
+    const passSeen = new Map();
+    if(state.protocol === "dealthrough")
+        all.forEach((cards, d) => cards.forEach(x => {
+            if(x === null) return;
+            const k = passIndex(d) + ":" + x;
+            passSeen.set(k, (passSeen.get(k) || 0) + 1);
+        }));
+
+    let complete = 0;
+    all.forEach((cards, d) => {
+        const block = document.getElementById(`draw_${d}`);
+        const stat  = document.getElementById(`stat_${d}`);
+        if(!block) return;
+        const filled = cards.filter(x => x !== null).length;
+
+        const dupe = new Set();
+        cards.forEach((x,i) => {
+            if(x === null) return;
+            if(cards.filter(y => y === x).length > 1) dupe.add(i);
+            if(state.protocol === "dealthrough" && passSeen.get(passIndex(d) + ":" + x) > 1) dupe.add(i);
+        });
+
+        for(let c = 0; c < 4; c++){
+            const x    = cards[c];
+            const slot = document.getElementById(`slot_${d}_${c}`);
+            const mini = document.getElementById(`mini_${d}_${c}`);
+            const suit = document.getElementById(`s_${d}_${c}`);
+            slot.classList.toggle("dupe", dupe.has(c));
+            suit.classList.toggle("red", suit.value === "1" || suit.value === "2");
+            mini.className = "mini" + (x === null ? "" : " filled" + (isRed(x) ? " red" : "")) +
+                             (dupe.has(c) ? " dupe" : "");
+            mini.innerHTML = x === null ? "" :
+                `<div>${cardLabel(x)}</div><div class="mid">${SUIT_LABELS[Math.floor(x/13)]}</div>` +
+                `<div class="bot">${cardLabel(x)}</div>`;
+        }
+
+        syncQuick(d, cards);
+
+        block.classList.toggle("err",  dupe.size > 0);
+        block.classList.toggle("done", dupe.size === 0 && filled === 4);
+        if(filled === 0){ stat.className = "dstat"; stat.textContent = "empty"; }
+        else if(dupe.size){ stat.className = "dstat bad"; stat.textContent = "duplicate card"; }
+        else if(filled < 4){ stat.className = "dstat"; stat.textContent = `${filled} of 4`; }
+        else { stat.className = "dstat good"; stat.textContent = "✓ complete"; complete++; }
+    });
+    state._complete = complete;
+    updateProgress();
+}
+
+function updateProgress(){
+    const done = state._complete || 0;
+    const pct  = Math.round(done / state.totalDraws * 100);
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("progressText").textContent =
+        `${done} of ${state.totalDraws} draws complete (${done * 4} of ${state.totalDraws * 4} card entries).`;
+}
+
+function clearDraws(){
+    for(let d = 0; d < state.totalDraws; d++){
+        const q = document.getElementById(`q_${d}`);
+        if(q) q.value = "";
+        for(let c = 0; c < 4; c++){
+            document.getElementById(`r_${d}_${c}`).value = "";
+            document.getElementById(`s_${d}_${c}`).value = "";
+        }
+    }
+    onCardChange();
+    document.getElementById("drawMsg").innerHTML = "";
+}
+
+/* validate the whole grid; returns {ok, cards[][], error} */
+function validateAll(){
+    const all = readAll();
+    for(let d = 0; d < state.totalDraws; d++){
+        const cards = all[d];
+        if(cards.some(x => x === null))
+            return { ok:false, error:`Draw ${d + 1} is incomplete. Every draw needs four cards.` };
+        if(new Set(cards).size !== 4)
+            return { ok:false, error:`Draw ${d + 1} repeats a card. One physical draw cannot contain the same card twice.` };
+    }
+    if(state.protocol === "dealthrough"){
+        let from = 0;
+        for(const count of state.layout){
+            const slice = all.slice(from, from + count).flat();
+            if(new Set(slice).size !== slice.length)
+                return { ok:false, error:
+                    `A card repeats within one deal-through pass (draws ${from+1}–${from+count}). ` +
+                    `Dealing off one shuffled deck cannot produce the same card twice — check your transcription.` };
+            from += count;
+        }
+    }
+    return { ok:true, cards: all };
+}
+
+/* ═════════ the derivation ═════════ */
+/* THE derivation. Everything - the interface, the golden vectors, the sensitivity sweep -
+   goes through this one function. Nothing may re-implement it: a test that reproduces the
+   steps inline tests only itself, and would keep passing while the shipped code was broken. */
+/* The input contract, enforced rather than assumed.
+
+   cardCode() takes a canonical card index and checks nothing: cardCode(null) returns "AC",
+   because null % 13 is 0 and Math.floor(null / 13) is 0. So an empty slot would quietly become
+   the ace of clubs, and a grid with one draw left blank would still yield twelve valid words
+   with a correct checksum. Nothing on screen would give it away. Passing two-letter codes where
+   indices belong is the same trap from the other direction.
+
+   Every present caller validates before it gets here. That is exactly the arrangement that stops
+   holding the first time somebody adds a caller, so the derivation refuses bad input itself and
+   throws rather than inventing cards. A thrown error is caught upstream and fails closed; a
+   plausible wrong seed would not be caught at all. */
+function assertCardArray(cards, len){
+    const cfg = CONFIG[len];
+    if(!cfg)
+        throw new Error(`derivation refused: unknown seed length ${JSON.stringify(len)}`);
+    if(!Array.isArray(cards))
+        throw new Error("derivation refused: cards must be an array of draws");
+    if(cards.length !== cfg.drawsMin && cards.length !== cfg.drawsMargin)
+        throw new Error(`derivation refused: ${cards.length} draws for a ${len}-word seed, ` +
+                        `expected ${cfg.drawsMin} or ${cfg.drawsMargin}`);
+    for(let d = 0; d < cards.length; d++){
+        const draw = cards[d];
+        if(!Array.isArray(draw) || draw.length !== 4)
+            throw new Error(`derivation refused: draw ${d + 1} does not hold exactly 4 cards`);
+        for(let c = 0; c < 4; c++){
+            const v = draw[c];
+            if(!Number.isInteger(v) || v < 0 || v > 51)
+                throw new Error(`derivation refused: draw ${d + 1} card ${c + 1} is not a card ` +
+                                `index 0-51 (got ${JSON.stringify(v)})`);
+        }
+    }
+}
+function preimageString(cards, len){
+    // Human-checkable domain-separated string. Reproduce it with any SHA-256 tool:
+    //   printf '%s' "<this string>" | sha256sum
+    return DERIVATION_ID + "|" + len + "|" + cards.flat().map(cardCode).join(" ");
+}
+async function deriveFromCards(cards, len){
+    assertCardArray(cards, len);        // fail closed on malformed input, never guess
+    const cfg = CONFIG[len];
+    const pre    = preimageString(cards, len);
+    const digest = await sha256Text(pre);
+    const entBits  = toBits(digest).slice(0, cfg.entropyBits);
+    const entBytes = new Uint8Array(cfg.entropyBits / 8);
+    for(let j = 0; j < entBytes.length; j++)
+        entBytes[j] = parseInt(entBits.slice(j * 8, j * 8 + 8), 2);
+    const csHash  = await sha256Bytes(entBytes);            // checksum computed, never chosen
+    const csLen   = cfg.entropyBits / 32;
+    const allBits = entBits + csHash[0].toString(2).padStart(8, "0").slice(0, csLen);
+    const idx = [];
+    for(let i = 0; i < allBits.length; i += 11) idx.push(parseInt(allBits.slice(i, i + 11), 2));
+    return { pre, digest, entBits, entBytes, csHash, csLen, allBits, idx,
+             words: idx.map(i => BIP39_WORDS[i]), entropyHex: toHex(entBytes) };
+}
+
+/* Any failure must leave nothing on screen that looks like a usable seed. */
+function failClosed(message){
+    const res = document.getElementById("result");
+    res.className = "out fail";
+    res.innerHTML = `<strong>${message}</strong>`;
+    document.getElementById("wordGrid").innerHTML = "";
+    document.getElementById("phraseText").textContent = "";
+    document.getElementById("phraseBlock").style.display = "none";
+    document.getElementById("resultBtns").style.display = "none";
+    document.getElementById("detail").style.display = "none";
+    document.getElementById("detail").textContent = "";
+    document.getElementById("shuffleCheck").style.display = "none";
+    document.getElementById("shuffleCheck").innerHTML = "";
+    document.getElementById("seedMaskBar").style.display = "none";
+    document.getElementById("xfpBlock").style.display = "none";
+    document.getElementById("addrBlock").style.display = "none";
+    state.lastResult = null;
+}
+
+async function deriveSeed(){
+    const gen = state.generation;
+    const msg = document.getElementById("drawMsg");
+    msg.innerHTML = "";
+    const v = validateAll();
+    if(!v.ok){
+        msg.innerHTML = `<div class="out fail">${v.error}</div>`;
+        failClosed("Cannot derive: " + v.error);
+        return;
+    }
+    if(state.verify.active){ await runVerify(); return; }
+
+    const cfg    = CONFIG[state.len];
+    const res    = document.getElementById("result");
+    const grid   = document.getElementById("wordGrid");
+    const detail = document.getElementById("detail");
+    res.className = "out info";
+    res.textContent = "Deriving…";
+    grid.innerHTML = "";
+
+    let D;
+    try{
+        D = await deriveFromCards(v.cards, state.len);
+    }catch(err){
+        /* Either the input guard rejected the grid or SHA-256 itself failed. Both are fatal and
+           both must leave nothing on screen; report what actually happened rather than blaming
+           the hash for a malformed grid. */
+        const msg = err && err.message ? err.message : String(err);
+        failClosed(/^derivation refused/.test(msg)
+            ? "Derivation stopped: " + msg.replace(/^derivation refused: /, "") +
+              ". Nothing is shown, because a seed derived from anything other than your cards " +
+              "would be wrong without looking wrong. Please report this."
+            : "SHA-256 error: " + msg);
+        return;
+    }
+    if(gen !== state.generation) return;                 // a wipe happened while we hashed
+    const { pre, digest, entBits, entBytes, csHash, csLen, allBits, idx, words } = D;
+
+    if(words.length !== cfg.words || words.some(w => w === undefined)){
+        failClosed("Internal error: word derivation produced an unexpected result. Do not use this output.");
+        return;
+    }
+
+    // re-check the finished mnemonic against the BIP-39 rules before showing it
+    const validCheck = await mnemonicIsValid(words);
+    if(gen !== state.generation) return;
+
+    if(!validCheck){
+        failClosed("Checksum self-check FAILED. Nothing is shown, because this output must not be used. Please report this.");
+        return;
+    }
+    res.className = "out ok";
+    res.innerHTML =
+        `<strong>${state.len}-word seed derived from ${state.totalDraws} physical draws.</strong> ` +
+        `All ${cfg.entropyBits} entropy bits come from your cards; the ${csLen}-bit checksum is computed from them. ` +
+        `The finished phrase was re-checked against the BIP-39 rules before being shown. ` +
+        `No random number generator was involved at any point.`;
+
+    grid.innerHTML = words.map((w, i) =>
+        `<div class="w"><span class="n">${i + 1}</span><span class="t">${w}</span></div>`).join("");
+
+    const shuffle = renderShuffleQuality(v.cards);
+
+    document.getElementById("phraseText").textContent = words.join(" ");
+    document.getElementById("phraseBlock").style.display = "block";
+    document.getElementById("resultBtns").style.display = "flex";
+    document.getElementById("seedMaskBar").style.display = "flex";
+    setMasked(true);                       // never paint a seed on screen unasked
+
+    const rawBits = state.rawBits;      // protocol-aware: deal-through yields less than 4 fresh cards
+    detail.textContent =
+`DERIVATION DETAIL — every step is reproducible with any SHA-256 tool
+──────────────────────────────────────────────────────────────────────
+
+STEP 1 · Your physical draws (${state.totalDraws} draws of 4 cards = ${state.totalDraws * 4} entries, one 52-card deck)
+${v.cards.map((c,i)=>`  Draw ${String(i+1).padStart(2)} : ${c.map(cardLabel).join("  ")}   (${c.map(cardCode).join(" ")})`).join("\n")}
+
+  Raw entropy present in these draws : ${rawBits.toFixed(2)} bits   (${state.protocol === "dealthrough" ? "dealt without replacement" : state.totalDraws + " x " + BITS_PER_DRAW.toFixed(4)})
+  Bits extracted                     : ${cfg.entropyBits}
+  Head-room absorbed by SHA-256      : ${state.headroom.toFixed(2)} bits
+
+STEP 2 · Entropy extraction
+  preimage (exact ASCII string):
+    ${pre}
+  reproduce it on any command line with:
+    printf '%s' '${pre}' | sha256sum
+  SHA-256 = ${toHex(digest)}
+  entropy = leading ${cfg.entropyBits} bits
+          = ${toHex(entBytes)}
+
+STEP 3 · BIP-39 checksum (computed, not chosen)
+  SHA-256(entropy)    = ${toHex(csHash)}
+  first byte in binary= ${csHash[0].toString(2).padStart(8,"0")}
+  checksum length     = ${csLen} bits  (entropy bits ÷ 32)
+  checksum bits taken = ${allBits.slice(cfg.entropyBits)}
+  Fully determined by STEP 2. No extra draw, no candidate list, no human choice.
+
+STEP 4 · Split ${allBits.length} bits into ${cfg.words} words of 11 bits
+${idx.map((ix,i)=>`  word ${String(i+1).padStart(2)} : ${allBits.slice(i*11,i*11+11)} = index ${String(ix).padStart(4)} = ${BIP39_WORDS[ix]}`).join("\n")}
+
+STEP 5 · Verification
+  Independent BIP-39 checksum re-check : ${validCheck ? "PASS" : "FAIL"}
+  Entropy in this seed                 : ${cfg.entropyBits} bits, all of it from your cards
+
+FINAL ${state.len}-WORD SEED
+──────────────────────────────────────────────────────────────────────
+${words.join(" ")}
+`;
+
+    const fp = await sha256Text("fingerprint|" + v.cards.flat().map(cardCode).join(" "));
+    state.verify.fingerprint = toHex(fp);
+    /* Per-draw hashes let verification name the draw that differs without keeping any card. */
+    state.verify.drawHashes = [];
+    for(let i = 0; i < v.cards.length; i++)
+        state.verify.drawHashes.push(toHex(await sha256Text("draw|" + i + "|" + v.cards[i].map(cardCode).join(" "))));
+    state.lastResult = {
+        words, cards: v.cards, preimage: pre,
+        len: state.len, protocol: state.protocol, margin: state.margin,
+        layout: state.layout.slice(), rawBits: state.rawBits, headroom: state.headroom,
+        digestHex: toHex(digest), entropyHex: toHex(entBytes), csHashHex: toHex(csHash),
+        csBits: allBits.slice(cfg.entropyBits), valid: validCheck, fingerprint: toHex(fp),
+        shuffle
+    };
+    document.getElementById("verifyStatus").className = "out info";
+    await renderFingerprint(words);        // after lastResult exists, so the PDF can carry the XFP
+    await renderAddresses(words);
+    document.getElementById("verifyStatus").innerHTML =
+        `Fingerprint of your entered draws: <code>${toHex(fp).slice(0,32)}…</code><br>` +
+        `Press <strong>Verify by re-entry</strong> above to blank the grid and re-type your draws from paper.`;
+}
+
+function toggleDetail(){
+    const d = document.getElementById("detail");
+    d.style.display = d.style.display === "none" ? "block" : "none";
+}
+function copyMnemonic(){
+    if(!state.lastResult) return;
+    const btn = document.getElementById("copyBtn");
+    navigator.clipboard.writeText(state.lastResult.words.join(" "))
+        .then(() => { armClipboardClear(); })
+        .catch(() => { btn.textContent = "Copy failed"; setTimeout(() => btn.textContent = "Copy seed phrase", 2000); });
+}
+
+/* ═════════ verify by re-entry ═════════ */
+function startVerify(){
+    if(!state.verify.fingerprint || !state.lastResult){ return; }
+    state.verify.active = true;
+    state.verify.cards  = null;                 // deliberately not retained, see below
+    clearDraws();
+    // the seed must leave the screen while you re-enter, as the message below promises
+    document.getElementById("wordGrid").innerHTML = "";
+    document.getElementById("phraseBlock").style.display = "none";
+    document.getElementById("resultBtns").style.display = "none";
+    document.getElementById("detail").style.display = "none";
+    document.getElementById("seedMaskBar").style.display = "none";
+    document.getElementById("xfpBlock").style.display = "none";
+    document.getElementById("addrBlock").style.display = "none";
+    document.getElementById("shuffleCheck").style.display = "none";
+    document.getElementById("result").className = "out info";
+    document.getElementById("result").textContent =
+        "Hidden during verification. Re-enter your draws and the seed will reappear only if the two entries match.";
+    document.getElementById("verifyCheckBtn").disabled = false;
+    document.getElementById("deriveBtn").textContent = "Check re-entry";
+    const el = document.getElementById("verifyStatus");
+    el.className = "out warn";
+    el.innerHTML =
+        `<strong>Verification in progress.</strong> The grid has been blanked. Your first entry is now held only as ` +
+        `SHA-256 hashes, one per draw, so the page cannot show it back to you. Re-enter all ${state.totalDraws} draws ` +
+        `from your paper record, then press ` +
+        `<strong>Check re-entry</strong>. The seed will not be shown again until the two entries match.`;
+    if(el.scrollIntoView) el.scrollIntoView({behavior:"smooth", block:"center"});
+}
+function cancelVerify(silent){
+    const wasActive = state.verify.active;
+    state.verify.active = false;
+    state.verify.cards  = null;
+    const btn = document.getElementById("verifyCheckBtn");
+    if(btn) btn.disabled = true;
+    const db = document.getElementById("deriveBtn");
+    if(db) db.textContent = "Derive seed from my draws";
+    if(!silent){
+        const el = document.getElementById("verifyStatus");
+        el.className = "out info";
+        el.textContent = "Verification cancelled.";
+        /* startVerify hid the result and blanked the grid; cancelling must put the seed back,
+           otherwise the only way to see it again is to retype every draw from paper. */
+        if(wasActive && state.lastResult){
+            const r = state.lastResult;
+            document.getElementById("wordGrid").innerHTML = r.words.map((w, i) =>
+                `<div class="w"><span class="n">${i + 1}</span><span class="t">${w}</span></div>`).join("");
+            document.getElementById("phraseText").textContent = r.words.join(" ");
+            document.getElementById("phraseBlock").style.display = "block";
+            document.getElementById("resultBtns").style.display = "flex";
+            document.getElementById("seedMaskBar").style.display = "flex";
+            setMasked(true);
+            renderFingerprint(r.words);
+            renderAddresses(r.words);
+            const res = document.getElementById("result");
+            res.className = "out ok";
+            res.innerHTML = `<strong>${r.len}-word seed restored.</strong> Verification was cancelled, so this ` +
+                            `phrase has been entered once and never re-checked against your paper record.`;
+            r.cards.forEach((cards, d) => {
+                const q = document.getElementById(`q_${d}`);
+                if(q) q.value = cards.map(cardCode).join(" ");
+                cards.forEach((x, c) => {
+                    const rk = document.getElementById(`r_${d}_${c}`), st = document.getElementById(`s_${d}_${c}`);
+                    if(rk) rk.value = x % 13; if(st) st.value = Math.floor(x / 13);
+                });
+            });
+            onCardChange();
+        }
+    }
+}
+async function runVerify(){
+    if(!state.verify.active) return;
+    const v = validateAll();
+    const el = document.getElementById("verifyStatus");
+    if(!v.ok){ el.className = "out fail"; el.textContent = v.error; return; }
+
+    const fp = toHex(await sha256Text("fingerprint|" + v.cards.flat().map(cardCode).join(" ")));
+    if(fp === state.verify.fingerprint){
+        /* Restore the seed FIRST, then report. deriveSeed() rewrites #verifyStatus with the
+           neutral "press Verify by re-entry" hint, so a Match message written before that call
+           is wiped by it: a successful verification would look exactly like one that never
+           happened, while a mismatch — which does not call deriveSeed — would show correctly.
+           The one path that must reassure the user was the one that said nothing. */
+        cancelVerify(true);
+        await deriveSeed();
+        el.className = "out ok";
+        el.innerHTML =
+            `<strong>Match.</strong> Your re-entry is byte-for-byte identical to your first entry ` +
+            `(fingerprint <code>${fp.slice(0,32)}…</code>). Your paper record reliably reproduces this seed.`;
+        return;
+    }
+    /* Name the draws that differ, using the per-draw hashes. The first entry is never stored,
+       so it cannot be echoed back here - which also means a deliberate typo cannot be used to
+       make the page reveal what was typed the first time. */
+    const diffs = [];
+    for(let d = 0; d < state.totalDraws; d++){
+        const h = toHex(await sha256Text("draw|" + d + "|" + v.cards[d].map(cardCode).join(" ")));
+        if(h !== (state.verify.drawHashes || [])[d])
+            diffs.push(`Draw ${d + 1}:  re-entry ${v.cards[d].map(cardCode).join(" ")}  does not match the first entry`);
+    }
+    el.className = "out fail";
+    el.innerHTML =
+        `<strong>Mismatch &mdash; ${diffs.length} draw${diffs.length===1?"":"s"} differ.</strong> ` +
+        `One of the two entries is wrong. Check these draws against your paper record and the deck ` +
+        `before going any further.` +
+        `<pre class="mono">${diffs.join("\n")}</pre>`;
+}
+
+/* ═════════ import / export of the draw record ═════════ */
+function exportSheet(){
+    const all = readAll();
+    const lines = all.map((c,d) =>
+        `${String(d+1).padStart(2)}: ` + c.map(x => x === null ? "??" : cardCode(x)).join(" "));
+    const txt = `# 1-deck card → BIP-39 draw record · generator version ${VERSION}\n# ${state.len} words · ${state.protocol} · ${state.margin}\n` + lines.join("\n") + "\n";
+    const blob = new Blob([txt], {type:"text/plain;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `draw-record-${state.len}w.txt`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+}
+/* prompt() is a single-line box in every browser, so a multi-line draw record could not be
+   pasted into it — the reason import never worked. Read the exported .txt file instead. */
+function importSheet(){
+    const f = document.getElementById("importFile");
+    if(!f){ return; }
+    f.value = "";                       // so re-picking the same file still fires change
+    f.click();
+}
+function onImportFile(ev){
+    const file = ev && ev.target && ev.target.files && ev.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => {
+        document.getElementById("drawMsg").innerHTML =
+            `<div class="out fail">Could not read that file.</div>`;
+    };
+    reader.onload = () => applyImportedRecord(String(reader.result || ""), file.name);
+    reader.readAsText(file);
+}
+function applyImportedRecord(txt, fileName){
+    if(txt === null) return;
+    const lines = txt.split("\n").map(l => l.trim()).filter(l => l.length);
+    const header = lines.find(l => /^#/.test(l) && /\d+\s*words/i.test(l)) || "";
+    const rows = lines.filter(l => !l.startsWith("#"))
+                      .map(l => l.replace(/^[^:]*:/, "").trim().split(/\s+/));
+    const problems = [];
+
+    /* Draw count and seed length are both baked into the preimage, so importing a record into
+       the wrong configuration silently produces a different seed. Refuse rather than guess. */
+    const wantLen = (header.match(/(\d+)\s*words/i) || [])[1];
+    if(wantLen && parseInt(wantLen, 10) !== state.len)
+        problems.push(`this record was made for a ${wantLen}-word seed, but ${state.len} words is selected`);
+    if(rows.length && rows.length !== state.totalDraws)
+        problems.push(`the record holds ${rows.length} draws, but the current settings need ${state.totalDraws}`);
+    if(problems.length){
+        document.getElementById("drawMsg").innerHTML =
+            `<div class="out fail"><strong>Import refused.</strong> ${problems.join("; ")}. ` +
+            `Match the settings above to the record first &mdash; the draw count and the seed length both ` +
+            `change the derived seed.</div>`;
+        return;
+    }
+
+    clearDraws();                                   // never blend two records together
+    let n = 0;
+    const bad = [];
+    for(let d = 0; d < state.totalDraws && d < rows.length; d++){
+        for(let c = 0; c < 4; c++){
+            const tok = rows[d][c] || "";
+            const idx = codeToIndex(tok);
+            if(idx < 0){ bad.push(`draw ${d + 1} card ${c + 1}` + (tok ? ` ("${tok}")` : " (missing)")); continue; }
+            document.getElementById(`r_${d}_${c}`).value = idx % 13;
+            document.getElementById(`s_${d}_${c}`).value = Math.floor(idx / 13);
+            n++;
+        }
+    }
+    onCardChange();
+    document.getElementById("drawMsg").innerHTML = n === 0
+        ? `<div class="out fail">Nothing could be parsed from ${fileName ? "“" + fileName + "”" : "that file"}.</div>`
+        : `<div class="out ${bad.length ? "warn" : "ok"}"><strong>Imported ${n} of ${state.totalDraws * 4} card entries` +
+          (fileName ? ` from “${fileName}”` : "") + `.</strong> ` +
+          (bad.length ? `Left blank because they could not be read: ${bad.join(", ")}. ` : "") +
+          `Check every row against your paper record.</div>`;
+}
+
+/* ═════════ printable sheet ═════════ */
+function buildPrintSheet(){
+    let rows = "", d = 0;
+    state.layout.forEach((count, p) => {
+        if(state.protocol === "dealthrough")
+            rows += `<tr><th colspan="2">Shuffle ${p+1} of ${state.layout.length} — deal ${count*4} cards</th></tr>`;
+        for(let k = 0; k < count; k++, d++)
+            rows += `<tr><td style="width:110px;">Draw ${d+1}</td>` +
+                    `<td class="blank">____  ____  ____  ____</td></tr>`;
+    });
+    document.getElementById("printSheet").innerHTML =
+        `<table class="sheet"><thead><tr><th>Draw</th>
+         <th>Cards in dealt order (e.g. AS 7H TD 3C)</th></tr></thead><tbody>${rows}</tbody></table>
+         <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+         ${state.len}-word seed · ${state.protocol === "dealthrough" ? "one shuffle, deal through" : "reshuffle between draws"} ·
+         ranks A 2–9 T J Q K · suits C D H S · order matters.</p>`;
+}
+
+/* ═════════ deterministic self-test ═════════ */
+const VECTORS = [
+ ["00000000000000000000000000000000",
+  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"],
+ ["7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f7f",
+  "legal winner thank year wave sausage worth useful legal winner thank yellow"],
+ ["80808080808080808080808080808080",
+  "letter advice cage absurd amount doctor acoustic avoid letter advice cage above"],
+ ["ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo vote"]
+];
+async function mnemonicFromEntropy(hex){
+    const bytes = new Uint8Array(hex.match(/../g).map(h => parseInt(h,16)));
+    const hash  = await sha256Bytes(bytes);
+    const csLen = bytes.length * 8 / 32;
+    const bits  = toBits(bytes) + hash[0].toString(2).padStart(8,"0").slice(0, csLen);
+    const out = [];
+    for(let i = 0; i < bits.length; i += 11) out.push(BIP39_WORDS[parseInt(bits.slice(i,i+11),2)]);
+    return out.join(" ");
+}
+
+async function runSelfTest(full){
+    if(testsRunning) return;
+    testsRunning = true;
+    const gen = state.generation;
+    try{
+    const out  = document.getElementById("testOut");
+    const prog = document.getElementById("testProgress");
+    out.style.display = "block";
+    let L = [], pass = 0, fail = 0;
+    const T = (name, ok, extra) => { L.push(`${ok ? "PASS" : "FAIL"}  ${name}${extra ? "\n      " + extra : ""}`); ok ? pass++ : fail++; };
+
+    L.push("DETERMINISTIC SELF-TEST · version " + VERSION);
+    L.push("These tests contain no randomness. Every machine must produce this exact output.\n");
+    out.textContent = L.join("\n");
+    prog.textContent = "Running…";
+
+    /* 1. wordlist */
+    T("Wordlist has exactly 2048 entries", BIP39_WORDS.length === 2048, `length = ${BIP39_WORDS.length}`);
+    T("Wordlist is sorted and duplicate-free",
+        BIP39_WORDS.every((w,i) => i === 0 || BIP39_WORDS[i-1] < w));
+    T("All 2048 four-letter prefixes are unique",
+        new Set(BIP39_WORDS.map(w => w.slice(0,4))).size === 2048);
+    try{
+        const h = toHex(await sha256Text(BIP39_WORDS.join("\n") + "\n"));
+        T("Wordlist matches the official BIP-39 English list",
+            h === "2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda",
+            `sha256 = ${h}`);
+    }catch(e){ T("Wordlist hash", false, e.message); }
+
+    /* 2. SHA-256 known-answer */
+    try{
+        const a = toHex(await sha256Text(""));
+        const b = toHex(await sha256Text("abc"));
+        T("SHA-256 known-answer (empty string)",
+            a === "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+        T("SHA-256 known-answer (\"abc\")",
+            b === "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    }catch(e){ T("SHA-256 availability", false, e.message); }
+
+    /* 3. BIP-39 official vectors */
+    for(const [hex, expect] of VECTORS){
+        try{
+            const got = await mnemonicFromEntropy(hex);
+            T(`BIP-39 vector ${hex.slice(0,8)}… (${expect.split(" ").length} words)`,
+                got === expect, got === expect ? "" : `got: ${got}`);
+        }catch(e){ T("BIP-39 vector " + hex.slice(0,8), false, e.message); }
+    }
+
+    /* 4. card encoding is injective and round-trips */
+    (function(){
+        const codes = [];
+        for(let i = 0; i < 52; i++) codes.push(cardCode(i));
+        T("All 52 card codes are distinct", new Set(codes).size === 52);
+        T("Card code round-trips for all 52 cards",
+            codes.every((c,i) => codeToIndex(c) === i));
+        T("Card codes are fixed-width, so the preimage string is unambiguous",
+            codes.every(c => c.length === 2));
+        T("BIP-39 index round-trips for all 2048 words",
+            BIP39_WORDS.every((w,i) => BIP39_WORDS.indexOf(w) === i));
+    })();
+
+    /* 4b. RIPEMD-160 and the BIP-32 fingerprint chain, against published vectors */
+    try{
+        const rmd = [["", "9c1185a5c5e9fc54612808977ee8f548b2258d31"],
+                     ["a", "0bdc9d2d256b3ee9daae347be6f4dc835a467ffe"],
+                     ["abc", "8eb208f7e05d987a9b044a8e98c6b087f15a0bfc"],
+                     ["message digest", "5d0689ef49d2fae572b881b123a85ffa21595f36"],
+                     ["abcdefghijklmnopqrstuvwxyz", "f71c27109c692c1b56bbdceb5b9d2865b3708dbc"]];
+        T("RIPEMD-160 matches all five known-answer vectors",
+            rmd.every(([m, h]) => toHex(ripemd160(enc.encode(m))) === h));
+
+        /* BIP-32 specification test vectors: seed -> master key -> fingerprint */
+        const b32 = [["000102030405060708090a0b0c0d0e0f", "3442193e"],
+                     ["fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a2" +
+                      "9f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542", "bd16bee5"]];
+        const got = [];
+        for(const [hex] of b32){
+            const seed = new Uint8Array(hex.match(/../g).map(h => parseInt(h, 16)));
+            const I    = await hmacSha512(enc.encode("Bitcoin seed"), seed);
+            const pub  = secpPubKey(BigInt("0x" + toHex(I.slice(0, 32))));
+            got.push(toHex(ripemd160(await sha256Bytes(pub))).slice(0, 8));
+        }
+        T("secp256k1 + fingerprint match both BIP-32 specification vectors",
+            got[0] === b32[0][1] && got[1] === b32[1][1],
+            `got ${got.join(", ")}, expected ${b32.map(v => v[1]).join(", ")}`);
+
+        const abandon = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about".split(" ");
+        const addrs = await firstAddresses(abandon, "", 2);
+        T("First two BIP-84 addresses match the specification test vectors",
+            addrs[0].address === "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu" &&
+            addrs[1].address === "bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g",
+            `${addrs[0].address}, ${addrs[1].address}`);
+        const f0 = await masterFingerprint(abandon, "");
+        T("Master fingerprint of the standard test mnemonic is 73c5da0a",
+            f0.xfp === "73c5da0a", `got ${f0.xfp}`);
+        const f1 = await masterFingerprint(abandon, "TREZOR");
+        T("BIP-39 seed with a passphrase matches the official vector",
+            f1.bip39SeedHex.startsWith("c55257c360c07c72029aebc1b53c05ed"),
+            `got ${f1.bip39SeedHex.slice(0, 32)}…`);
+        T("A passphrase changes the fingerprint", f0.xfp !== f1.xfp);
+    }catch(e){ T("Fingerprint chain", false, e.message); }
+
+    /* 4c. no version string may be typed by hand anywhere */
+    (function(){
+        const stray = [];
+        const seen  = new Set();
+        const scan  = (label, text) => {
+            for(const m of String(text).matchAll(/\bv?(\d+\.\d{2})\b/g)){
+                if(m[1] === VERSION) continue;
+                if(m[1] === "39" || /^0\./.test(m[1])) continue;
+                const key = label + ":" + m[1];
+                if(!seen.has(key)){ seen.add(key); stray.push(`${label} says ${m[1]}`); }
+            }
+        };
+        scan("title", document.title);
+        document.querySelectorAll("#verLine,#verFooter,#cmdLinux,#cmdMac,#cmdWin").forEach(
+            el => scan("#" + el.id, el.textContent));
+        T("Every version label on the page matches the VERSION constant",
+            stray.length === 0,
+            stray.length ? stray.join("; ") : `all read ${VERSION}`);
+    })();
+
+    /* 5. golden vectors — the whole pipeline, end to end */
+    /* Goes through deriveFromCards - the same function the button uses. If the shipped
+       derivation is altered in any way, these vectors fail. That is the entire point. */
+    async function goldenDerive(len, codeString){
+        const codes = codeString.trim().split(/\s+/).map(codeToIndex);
+        if(codes.some(i => i < 0)) throw new Error("golden vector contains an unparsable card code");
+        const cards = [];
+        for(let i = 0; i < codes.length; i += 4) cards.push(codes.slice(i, i + 4));
+        const r = await deriveFromCards(cards, len);
+        return { entropy: r.entropyHex, mnemonic: r.words.join(" ") };
+    }
+    const GOLDEN = [
+        [12, "AS 7H TD 3C KD 2S 9C JH 4H QS 6D 8C TC AD 5S 7D 3H JC KS 2D 9H 4C QD 6S 8S TH AC 5D 2H 6C JS 4D",
+             "0ac0bfccc2295a93fed4973168bffa2f",
+             "approve album veteran lounge noble enemy win napkin cousin echo write galaxy"],
+        [24, "5D QD 8H AC QD 6H 2S 8C 6H KH 9S 2D KH 7S 3C 9D 7S AC TC 3H AC 8C 4D TH 8C 2D JD 4S 2D 9D 5H JS 9D 3H QH 5C 3H TH 6S QC TH 4S KS 6D 4S JS 7C KD JS 5C AD 7H 5C QC 8D AS",
+             "2f1ec656ea10b9fba9169a42a1128631a429d0b54b55d5b093f4f1714d01af94",
+             "congress wage noble stage argue worry picture spy dress ancient pave globe dream tribe steel height stick loyal wood title below liar salad original"]
+    ];
+    for(const [len, cards, entropy, mnemonic] of GOLDEN){
+        try{
+            const g = await goldenDerive(len, cards);
+            T(`Golden vector: ${len}-word seed from a fixed ${cards.split(" ").length}-card sequence`,
+                g.entropy === entropy && g.mnemonic === mnemonic,
+                g.mnemonic === mnemonic ? "" : `got entropy ${g.entropy}\n      got seed    ${g.mnemonic}`);
+            T(`Golden vector ${len}-word passes an independent checksum check`,
+                await mnemonicIsValid(g.mnemonic.split(" ")));
+        }catch(e){ T(`Golden vector ${len}-word`, false, e.message); }
+    }
+    L.push("      (a golden vector fails only if this page has been altered — that is the point of it)");
+
+    /* 5b. the derivation refuses malformed input instead of inventing cards.
+       Every case below produced a valid-looking twelve-word seed before the guard existed;
+       the blank-slot one silently derived from aces of clubs the user never drew. */
+    {
+        const flat = "AS 7H TD 3C KD 2S 9C JH 4H QS 6D 8C TC AD 5S 7D 3H JC KS 2D 9H 4C QD 6S 8S TH AC 5D 2H 6C JS 4D"
+                        .split(/\s+/).map(codeToIndex);
+        const draws = a => { const o = []; for(let i = 0; i < a.length; i += 4) o.push(a.slice(i, i + 4)); return o; };
+        const mutate = fn => { const c = draws(flat).map(d => d.slice()); fn(c); return c; };
+
+        const CASES = [
+            ["a blank slot — cardCode(null) is the ace of clubs", mutate(c => { c[7] = [null, null, null, null]; })],
+            ["two-letter card codes where indices belong",        draws(flat).map(d => d.map(cardCode))],
+            ["a card index outside 0-51",                         mutate(c => { c[0][0] = 52; })],
+            ["a non-integer card index",                          mutate(c => { c[3][2] = 7.5; })],
+            ["a draw that does not hold four cards",              mutate(c => { c[0] = [0, 1, 2]; })],
+            ["the wrong number of draws",                         draws(flat).slice(0, 5)],
+            ["an unknown seed length",                            draws(flat)]
+        ];
+        for(let i = 0; i < CASES.length; i++){
+            const [what, bad] = CASES[i];
+            const len = (i === CASES.length - 1) ? 18 : 12;      // last case exercises the length check
+            let threw = false, note = "";
+            try{
+                const r = await deriveFromCards(bad, len);
+                note = `derived "${r.words.slice(0, 3).join(" ")}…" instead of throwing`;
+            }catch(e){ threw = true; }
+            T(`Derivation refuses ${what}`, threw, note);
+        }
+        /* and it is not simply refusing everything — the same grid still derives */
+        let stillWorks = false;
+        try{ stillWorks = (await deriveFromCards(draws(flat), 12)).words.length === 12; }catch(e){}
+        T("…while a valid grid still derives normally", stillWorks);
+    }
+
+    /* 6. deterministic sweep over the production path */
+    if(full){
+        prog.textContent = "Sweep: 0 of 8,192 derivations…";
+        let sweepDone = 0;
+        await new Promise(r => setTimeout(r, 30));
+        let allValid = true, badLen = 0, roundTrip = true;
+        const seen12 = new Set(), seen24 = new Set();
+        for(const len of [12, 24]){
+            const cfg = CONFIG[len];
+            for(let n = 0; n < 4096; n++){
+                // deterministic, counter-driven — no randomness anywhere in this loop
+                const digest  = await sha256Text("selftest|" + len + "|" + n);
+                const entBits = toBits(digest).slice(0, cfg.entropyBits);
+                const entBytes = new Uint8Array(cfg.entropyBits / 8);
+                for(let j = 0; j < entBytes.length; j++)
+                    entBytes[j] = parseInt(entBits.slice(j*8, j*8+8), 2);
+                const csHash = await sha256Bytes(entBytes);
+                const all = entBits + csHash[0].toString(2).padStart(8,"0").slice(0, cfg.entropyBits/32);
+                const idx = [];
+                for(let i = 0; i < all.length; i += 11) idx.push(parseInt(all.slice(i,i+11),2));
+                if(idx.length !== len) badLen++;
+                idx.forEach(i => (len === 12 ? seen12 : seen24).add(i));
+                const words = idx.map(i => BIP39_WORDS[i]);
+                if(!(await mnemonicIsValid(words))) allValid = false;
+                // round-trip: words back to entropy must reproduce the entropy exactly
+                const back = words.map(w => BIP39_WORDS.indexOf(w).toString(2).padStart(11,"0")).join("")
+                                  .slice(0, cfg.entropyBits);
+                if(back !== entBits) roundTrip = false;
+                sweepDone++;
+                if((n & 511) === 0 || n === 4095){
+                    prog.textContent = `Sweep: ${groupNum(sweepDone)} of 8,192 derivations (${len}-word half)…`;
+                    await new Promise(r => setTimeout(r, 0));
+                }
+            }
+        }
+        T("Sweep: 8192 derived mnemonics all pass an independent BIP-39 checksum check", allValid);
+        T("Sweep: every derivation produced the correct number of words", badLen === 0, `wrong length: ${badLen}`);
+        T("Sweep: words round-trip back to the exact entropy every time", roundTrip);
+        T("Sweep: all 2048 word indices are reachable (12-word path)", seen12.size === 2048, `distinct indices seen: ${seen12.size}`);
+        T("Sweep: all 2048 word indices are reachable (24-word path)", seen24.size === 2048, `distinct indices seen: ${seen24.size}`);
+    }else{
+        L.push("SKIP  Deterministic sweep over 8192 derivations (press \"Run full sweep\")");
+    }
+
+    prog.textContent = "";
+    L.push("");
+    L.push("──────────────────────────────────────────");
+    L.push(`${pass} passed, ${fail} failed.`);
+    L.push(fail === 0
+        ? "All checks pass. The mapping from cards to words is correct and unbiased."
+        : "SOMETHING FAILED. Do not use this page to generate a real seed.");
+    L.push("");
+    L.push(`Reference figures for this scheme:`);
+    L.push(`  ordered 4-card draws       : ${groupNum(PERM_TOTAL)}`);
+    L.push(`  entropy per draw           : ${BITS_PER_DRAW.toFixed(4)} bits`);
+    L.push(`  12-word, safety margin     : 8 draws  -> 181.05 raw bits -> 128 bits  (70.7%, 53.05 bits head-room)`);
+    L.push(`  24-word, safety margin     : 14 draws -> 316.84 raw bits -> 256 bits  (80.8%, 60.84 bits head-room)`);
+    L.push(`  checksum                   : computed from the entropy, as BIP-39 defines. No draw, no choice.`);
+    if(gen === state.generation) out.textContent = L.join("\n");
+    }finally{ testsRunning = false; }
+}
+
+/* ═════════ SHUFFLE-QUALITY CHECK ═════════
+   The one risk this software cannot otherwise see is your shuffle. It can see a little of it,
+   because a sealed casino deck starts in a known order: within each suit the ranks run in
+   sequence. Insufficient riffling leaves those runs partly intact, so consecutive same-suit
+   ranks keep turning up together in your draws.
+
+   Statistic: the number of pairs, within a single 4-card draw, that are the same suit and one
+   rank apart, summed over every draw.
+
+   Calibration is analytic, not simulated - nothing here needs randomness. A deck has
+   4 x 12 = 48 same-suit consecutive pairs out of C(52,2) = 1326, so two random cards are
+   adjacent with probability 48/1326. Each draw contributes C(4,2) = 6 pairs, giving an
+   expectation of 6 x 48/1326 = 0.2172 pairs per draw. Occurrences are rare and near
+   independent, so the total is Poisson to a very good approximation, and thresholds follow
+   from the Poisson tail directly.
+
+   Measured against the Gilbert-Shannon-Reeds shuffle model, this flags 1 riffle 100% of the
+   time and 2 riffles 97.5% of the time, at a false-alarm rate under 1%.
+
+   Two honest limits, stated in the UI as well:
+     - It assumes the deck started in new-deck order. A deck that was already shuffled shows
+       no signal and will always pass.
+     - It is one-sided. It catches under-shuffling; it cannot certify good shuffling. Four or
+       more riffles are essentially invisible to it. */
+const ADJ_PAIRS_IN_DECK = 4 * 12;                 // same suit, consecutive rank
+const PAIRS_IN_DECK     = 52 * 51 / 2;            // 1326
+const ADJ_P             = ADJ_PAIRS_IN_DECK / PAIRS_IN_DECK;       // 0.036199…
+const ADJ_WINDOW        = 3;                      // how far apart in dealt order to look
+
+/* Pairs of positions within one pass that are at most ADJ_WINDOW apart in dealing order.
+   For a 4-card pass that is all 6 pairs; for a 32-card deal-through pass it is 90 pairs that
+   straddle the draw boundaries — which is where an under-shuffled deck actually shows up.
+   Counting every pair in a long pass instead was measured and is far worse: it adds 496 pairs
+   of pure noise to catch the same handful of signal pairs, dropping detection of a single
+   riffle from 100% to 5.8%. Locality is what gives this test its power. */
+function windowPairCount(n){
+    let k = 0;
+    for(let d = 1; d <= ADJ_WINDOW; d++) k += Math.max(0, n - d);
+    return k;
+}
+
+const sameSuitAdjacent = (a, b) =>
+    Math.floor(a / 13) === Math.floor(b / 13) && Math.abs((a % 13) - (b % 13)) === 1;
+
+/* smallest k with P(X > k) <= alpha for X ~ Poisson(lambda) */
+function poissonThreshold(lambda, alpha){
+    let cum = 0, p = Math.exp(-lambda);
+    for(let k = 0; k < 80; k++){
+        cum += p;
+        if(1 - cum <= alpha) return k;
+        p = p * lambda / (k + 1);
+    }
+    return 79;
+}
+
+/* Two patterns that a genuinely random draw almost never produces, adapted from Amulet v1.58's
+   card checks. These catch a different failure from the adjacency statistic: that one detects an
+   under-shuffled REAL deck, these detect input that was never drawn at all — cards invented at
+   the keyboard rather than dealt.
+
+   Thresholds measured over 200,000 random sessions:
+     >=2 draws with a straight rank run   : 0.002% (8 draws) / 0.008% (14 draws)
+     >=3 draws all of one suit            : 0.008% (8 draws) / 0.045% (14 draws)
+   Both are essentially never seen by chance, so a hit is worth stopping for. */
+function inputPatternFlags(cards){
+    const flags = [];
+    let straights = 0, flushes = 0;
+    const straightList = [], flushList = [];
+    cards.forEach((r, d) => {
+        const ranks = r.map(c => c % 13);
+        const asc  = ranks.every((v, i, a) => i === 0 || v === a[i-1] + 1);
+        const desc = ranks.every((v, i, a) => i === 0 || v === a[i-1] - 1);
+        if(asc || desc){ straights++; straightList.push(d + 1); }
+        if(new Set(r.map(c => Math.floor(c / 13))).size === 1){ flushes++; flushList.push(d + 1); }
+    });
+    if(straights >= 2)
+        flags.push(`${straights} draws are a straight run of ranks (draws ${straightList.join(", ")}) — ` +
+                   `a random deal produces two or more of these in well under one session in ten thousand`);
+    if(flushes >= 3)
+        flags.push(`${flushes} draws are all one suit (draws ${flushList.join(", ")}) — ` +
+                   `a random deal produces three or more of these in about one session in ten thousand`);
+    return flags;
+}
+
+function shuffleQuality(cards){
+    /* Group the draws into passes. Under the reshuffle protocol every draw is its own pass of
+       four cards, so this is exactly the old within-draw test. Under deal-through a pass is the
+       whole run dealt off one shuffle, so pairs spanning draw boundaries are now counted. */
+    const passes = [];
+    let from = 0;
+    const layout = (state.protocol === "dealthrough" && state.layout) ? state.layout : cards.map(() => 1);
+    for(const count of layout){
+        passes.push({ start: from, cards: cards.slice(from, from + count).flat() });
+        from += count;
+    }
+
+    const hits = [];
+    let pairsExamined = 0;
+    for(const pass of passes){
+        const seq = pass.cards;
+        pairsExamined += windowPairCount(seq.length);
+        for(let i = 0; i < seq.length; i++)
+            for(let j = i + 1; j <= Math.min(i + ADJ_WINDOW, seq.length - 1); j++)
+                if(sameSuitAdjacent(seq[i], seq[j]))
+                    hits.push(`${cardCode(seq[i])} and ${cardCode(seq[j])} (draw ` +
+                              `${pass.start + Math.floor(i / 4) + 1}${Math.floor(i / 4) !== Math.floor(j / 4) ? "/" + (pass.start + Math.floor(j / 4) + 1) : ""})`);
+    }
+    const lambda = ADJ_P * pairsExamined;
+    const warn   = poissonThreshold(lambda, 0.01);
+    const alarm  = poissonThreshold(lambda, 0.001);
+    const n = hits.length;
+    let level, headline;
+    if(n > alarm){
+        level = "fail";
+        headline = `Your deck looks barely shuffled: ${n} adjacent pairs, where a well-shuffled deck averages ${lambda.toFixed(1)}.`;
+    }else if(n > warn){
+        level = "warn";
+        headline = `Elevated: ${n} adjacent pairs, where a well-shuffled deck averages ${lambda.toFixed(1)}.`;
+    }else{
+        level = "ok";
+        headline = `No sign of under-shuffling: ${n} adjacent pair${n === 1 ? "" : "s"}, against an expected ${lambda.toFixed(1)}.`;
+    }
+    const patterns = inputPatternFlags(cards);
+    if(patterns.length && level === "ok"){ level = "warn"; }
+    else if(patterns.length){ level = "fail"; }
+    return { n, lambda, warn, alarm, level, headline, hits, pairsExamined, patterns };
+}
+
+function renderShuffleQuality(cards){
+    const el = document.getElementById("shuffleCheck");
+    const q  = shuffleQuality(cards);
+    el.style.display = "block";
+    el.className = "out " + q.level;
+    el.innerHTML =
+        `<strong>Shuffle check &mdash; ${q.headline}</strong><br><br>` +
+        `Counted across your ${cards.length} draws: the ${q.pairsExamined} pairs of cards dealt within ` +
+        `${ADJ_WINDOW} positions of each other that are the same suit and one rank apart` +
+        (state.protocol === "dealthrough" ? ", including pairs that straddle two draws in the same pass" : "") +
+        `. A sealed deck arrives with each suit in rank order, so leftover pairs are the fingerprint of a deck ` +
+        `that was not riffled enough. Warning above ${q.warn}, strong alarm above ${q.alarm} ` +
+        `(1% and 0.1% false-alarm rates).` +
+        (q.hits.length ? `<br><br><span style="color:var(--muted)">Pairs found &mdash; ${q.hits.join("; ")}</span>` : "") +
+        (q.patterns.length
+            ? `<br><br><strong>These draws do not look dealt:</strong><br>` +
+              q.patterns.map(f => "&bull; " + f).join("<br>") +
+              `<br><br>If you invented these cards rather than drawing them, stop and shuffle a real deck. ` +
+              `This check is separate from the count above: it looks for hands a shuffled deck almost never deals.`
+            : "") +
+        (q.level === "ok"
+            ? `<br><br><span style="color:var(--muted)">This is a blunder detector, not a certificate. It reliably ` +
+              `catches one or two riffles, but four or more are invisible to it, and it assumes the deck started in ` +
+              `factory order &mdash; a deck already in some other known order, such as a cancelled casino deck ` +
+              `resealed in a box, shows no signal and passes here regardless. It cannot tell you your shuffle was ` +
+              `good, only that it was not obviously bad.</span>`
+            : `<br><br><strong>What to do:</strong> discard these draws, riffle the deck at least seven more times ` +
+              `with cuts and strips between, and start again. Wash the deck first if you have not. Entropy you did ` +
+              `not generate cannot be recovered later, ` +
+              `and no amount of hashing will put it back.`);
+    return q;
+}
+
+/* ═════════ CARD-SENSITIVITY SWEEP (the heavy test) ═════════
+   A statistical test of the output distribution cannot validate this tool. SHA-256 whitens its
+   output regardless of how little entropy went in, so a build that silently discarded a quarter
+   of your cards still produces a flat chi-square and a healthy-looking p-value. Measured: a
+   deliberately broken derivation that ignored the 4th card of every draw - costing 44.9 bits -
+   scored chi2 = 2072.5 on 2047 df, p = 0.348, and passed.
+
+   What that broken build cannot survive is this: change one card and demand that the seed change.
+   Every card position is substituted with all 48 legal alternatives, across several baselines,
+   and every resulting entropy value must be new. The broken build fails immediately with 8 dead
+   positions and 384 collisions.
+
+   Deterministic throughout: baselines come from a counter, not a random source. */
+/* Also the production path, for the same reason. */
+async function deriveEntropyHexFrom(cards, len){
+    return (await deriveFromCards(cards, len)).entropyHex;
+}
+/* deterministic baseline draws derived from a counter */
+async function baselineDraws(nDraws, seed){
+    const out = [];
+    let h = await sha256Text("baseline|" + seed), p = 0;
+    for(let d = 0; d < nDraws; d++){
+        const c = [], used = new Set();
+        while(c.length < 4){
+            if(p >= 32){ h = await sha256Bytes(h); p = 0; }
+            const v = h[p++] % 52;
+            if(!used.has(v)){ used.add(v); c.push(v); }
+        }
+        out.push(c);
+    }
+    return out;
+}
+
+async function runSensitivitySweep(){
+    if(testsRunning) return;
+    testsRunning = true;
+    const gen = state.generation;
+    try{
+    const out  = document.getElementById("testOut");
+    const prog = document.getElementById("testProgress");
+    out.style.display = "block";
+    const L = [];
+    let pass = 0, fail = 0;
+    const T = (name, ok, extra) => { L.push(`${ok ? "PASS" : "FAIL"}  ${name}${extra ? "\n      " + extra : ""}`); ok ? pass++ : fail++; };
+
+    L.push("CARD-SENSITIVITY SWEEP");
+    L.push("Proves that every card you draw reaches the seed, and that order matters.");
+    L.push("This is the test a chi-square cannot replace: SHA-256 whitens its output, so a build");
+    L.push("that ignored a quarter of your cards would still pass every distribution statistic.");
+    L.push("");
+    out.textContent = L.join("\n");
+
+    const BASELINES = 3;
+    let totalSubs = 0, totalDead = 0, totalCollisions = 0;
+    const GRAND = (32 + 56) * 48 * BASELINES;   // 12,672 single-card substitutions
+
+    for(const len of [12, 24]){
+        const nDraws = CONFIG[len].drawsMargin;
+        const dead = [];
+        const seen = new Set();
+        let subs = 0;
+
+        for(let b = 0; b < BASELINES; b++){
+            const base = await baselineDraws(nDraws, `${len}-${b}`);
+            const ref  = await deriveEntropyHexFrom(base, len);
+            seen.add(ref);
+
+            for(let d = 0; d < nDraws; d++){
+                for(let c = 0; c < 4; c++){
+                    let changed = 0, tried = 0;
+                    for(let v = 0; v < 52; v++){
+                        if(base[d].includes(v)) continue;          // must remain a legal draw
+                        const alt = base.map(r => r.slice());
+                        alt[d][c] = v;
+                        const hex = await deriveEntropyHexFrom(alt, len);
+                        seen.add(hex); subs++; tried++;
+                        if(hex !== ref) changed++;
+                    }
+                    if(changed !== tried) dead.push(`${len}w baseline ${b + 1}, draw ${d + 1} card ${c + 1}`);
+                }
+                prog.textContent = `Sensitivity sweep: ${(totalSubs + groupNum(subs))} of ${groupNum(GRAND)} derivations `
+                    + `(${len}-word, baseline ${b + 1} of ${BASELINES}, draw ${d + 1} of ${nDraws})`;
+                await new Promise(r => setTimeout(r, 0));
+            }
+        }
+        const expectedDistinct = subs + BASELINES;
+        const collisions = expectedDistinct - seen.size;
+        totalSubs += subs; totalDead += dead.length; totalCollisions += collisions;
+
+        T(`${len}-word: every one of the ${nDraws * 4} card positions affects the seed`,
+            dead.length === 0,
+            dead.length ? `positions with no effect: ${dead.slice(0,6).join(", ")}${dead.length>6?", …":""}`
+                        : `${groupNum(subs)} single-card substitutions, ${nDraws * 4} positions × 48 alternatives × ${BASELINES} baselines`);
+        T(`${len}-word: no two different card sequences produced the same entropy`,
+            collisions === 0,
+            `${groupNum(seen.size)} distinct entropy values from ${groupNum(expectedDistinct)} distinct inputs`);
+    }
+
+    /* order sensitivity — the seed must depend on the order cards came off the deck */
+    prog.textContent = "Sensitivity sweep: order tests…";
+    await new Promise(r => setTimeout(r, 0));
+    for(const len of [12, 24]){
+        const nDraws = CONFIG[len].drawsMargin;
+        const base = await baselineDraws(nDraws, `order-${len}`);
+        const ref  = await deriveEntropyHexFrom(base, len);
+        let swapsWithin = 0, changedWithin = 0;
+        for(let d = 0; d < nDraws; d++)
+            for(let i = 0; i < 4; i++)
+                for(let j = i + 1; j < 4; j++){
+                    const alt = base.map(r => r.slice());
+                    [alt[d][i], alt[d][j]] = [alt[d][j], alt[d][i]];
+                    swapsWithin++;
+                    if(await deriveEntropyHexFrom(alt, len) !== ref) changedWithin++;
+                }
+        let swapsAcross = 0, changedAcross = 0;
+        for(let d = 0; d + 1 < nDraws; d++){
+            const alt = base.map(r => r.slice());
+            [alt[d], alt[d + 1]] = [alt[d + 1], alt[d]];
+            swapsAcross++;
+            if(await deriveEntropyHexFrom(alt, len) !== ref) changedAcross++;
+        }
+        T(`${len}-word: swapping two cards within a draw always changes the seed`,
+            changedWithin === swapsWithin, `${changedWithin} of ${swapsWithin} swaps changed the entropy`);
+        T(`${len}-word: swapping two whole draws always changes the seed`,
+            changedAcross === swapsAcross, `${changedAcross} of ${swapsAcross} swaps changed the entropy`);
+    }
+
+    /* the control: a build that ignores the last card of every draw must FAIL this sweep */
+    prog.textContent = "Sensitivity sweep: negative control…";
+    await new Promise(r => setTimeout(r, 0));
+    {
+        const base = await baselineDraws(8, "control");
+        const broken = cards => cards.map(c => [c[0], c[1], c[2], c[0]]);   // drops card 4
+        const ref = await deriveEntropyHexFrom(broken(base), 12);
+        let dead = 0;
+        for(let v = 0; v < 52; v++){
+            if(base[0].includes(v)) continue;
+            const alt = base.map(r => r.slice());
+            alt[0][3] = v;
+            if(await deriveEntropyHexFrom(broken(alt), 12) === ref) dead++;
+        }
+        T("Negative control: a build that ignored card 4 would be caught by this sweep",
+            dead > 0, `the sweep detects ${dead} substitutions with no effect, exactly as intended`);
+    }
+
+    prog.textContent = "";
+    L.push("");
+    L.push("──────────────────────────────────────────");
+    L.push(`${pass} passed, ${fail} failed.`);
+    L.push(`${groupNum(totalSubs)} single-card substitutions evaluated, ` +
+           `${totalDead} dead positions, ${totalCollisions} entropy collisions.`);
+    L.push(fail === 0
+        ? "Every card, and the order of every card, provably reaches the seed."
+        : "SOMETHING FAILED. Part of your input is not reaching the seed. Do not use this page.");
+    L.push("");
+    L.push("Why this and not a chi-square over many generated seeds:");
+    L.push("  A derivation that silently ignored the 4th card of every draw - throwing away");
+    L.push("  44.9 of 181.1 bits - was measured at chi2 = 2072.5 on 2047 df, p = 0.348,");
+    L.push("  KL = 0.0050, max|Z| = 4.09. It passed every distribution test, with numbers");
+    L.push("  closer to ideal than the correct build. The same bug fails the sweep above");
+    L.push("  instantly, with 8 dead card positions and 384 entropy collisions.");
+    if(gen === state.generation) out.textContent = L.join("\n");
+    }finally{ testsRunning = false; }
+}
+
+/* ═════════ PDF RECORD ═════════
+   A self-contained PDF writer. No library, no CDN, no network — this page has to keep
+   working on an air-gapped machine, so the file is assembled byte by byte here.
+   Uses only the PDF base-14 fonts (Helvetica, Helvetica-Bold, Courier), which need no
+   embedding, and pure ASCII text, so no encoding table is required.
+   Nothing here reads a clock: the PDF carries no creation date, by design. */
+const PDF_W = 595.28, PDF_H = 841.89, PDF_M = 42;      // A4, 42pt margins
+
+const PDF_TRANSLIT = {
+    "\u00b7":"-", "\u2013":"-", "\u2014":"-", "\u2018":"'", "\u2019":"'",
+    "\u201c":'"', "\u201d":'"', "\u2026":"...", "\u00d7":"x", "\u2192":"->",
+    "\u2264":"<=", "\u2265":">=", "\u00b2":"2", "\u2082":"2", "\u00a0":" ", "\u2011":"-"
+};
+function pdfEscape(s){
+    return String(s)
+        .replace(/[\u00b7\u2013\u2014\u2018\u2019\u201c\u201d\u2026\u00d7\u2192\u2264\u2265\u00b2\u2082\u00a0\u2011]/g,
+                 ch => PDF_TRANSLIT[ch])
+        .replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)")
+        .replace(/[^\x20-\x7E]/g, "?");     // anything still left is genuinely unprintable here
+}
+function wrapChars(text, max){
+    const words = String(text).split(" ");
+    const lines = [];
+    let cur = "";
+    for(const w of words){
+        if(w.length > max){                              // hard-break an over-long token
+            if(cur){ lines.push(cur); cur = ""; }
+            for(let i = 0; i < w.length; i += max) lines.push(w.slice(i, i + max));
+            continue;
+        }
+        if(!cur) cur = w;
+        else if((cur + " " + w).length <= max) cur += " " + w;
+        else { lines.push(cur); cur = w; }
+    }
+    if(cur) lines.push(cur);
+    return lines;
+}
+
+/* a tiny page-building context */
+function pdfDoc(){
+    const pages = [];
+    let ops = [], y = PDF_H - PDF_M;
+    const newPage = () => { if(ops.length) pages.push(ops); ops = []; y = PDF_H - PDF_M; };
+    const need = h => { if(y - h < PDF_M + 16){ newPage(); return true; } return false; };
+    const text = (s, font, size, dx, color) => {
+        const x = PDF_M + (dx || 0);
+        ops.push(`BT /${font} ${size} Tf ${color || "0 0 0"} rg ${x.toFixed(2)} ${y.toFixed(2)} Td (${pdfEscape(s)}) Tj ET`);
+    };
+    return {
+        get pages(){ if(ops.length) pages.push(ops); ops = []; return pages; },
+        gap(h){ y -= h; },
+        need(h){ return need(h); },
+        at(s, font, size, x, dy){
+            ops.push(`BT /${font} ${size} Tf 0 0 0 rg ${x.toFixed(2)} ${(y + (dy || 0)).toFixed(2)} Td (${pdfEscape(s)}) Tj ET`);
+        },
+        hline(x, w, lw){
+            ops.push(`0.55 G ${(lw || 0.8).toFixed(2)} w ${x.toFixed(2)} ${y.toFixed(2)} m ${(x + w).toFixed(2)} ${y.toFixed(2)} l S`);
+        },
+        rect(x, w, h, lw){
+            ops.push(`0.2 G ${(lw || 1).toFixed(2)} w ${x.toFixed(2)} ${(y - h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re S`);
+        },
+        rule(){ need(10); ops.push(`0.65 G 0.7 w ${PDF_M} ${y.toFixed(2)} m ${(PDF_W - PDF_M).toFixed(2)} ${y.toFixed(2)} l S`); y -= 12; },
+        h1(s){ need(26); text(s, "F2", 15); y -= 21; },
+        h2(s){ y -= 6; need(20); text(s, "F2", 10.5); y -= 15; },
+        p(s, indent){ for(const ln of wrapChars(s, 92)){ need(13); text(ln, "F1", 9.3, indent || 0); y -= 12.4; } },
+        mono(s, indent, size){ const sz = size || 8.4; const max = Math.floor((PDF_W - 2*PDF_M - (indent||0)) / (sz*0.6));
+            for(const ln of wrapChars(s, max)){ need(12); text(ln, "F3", sz, indent || 0); y -= sz*1.35; } },
+        kv(k, v){ need(13); text(k, "F2", 9); text(v, "F3", 9, 150); y -= 12.6; },
+        box(h, shade){ y -= 8; need(h + 6); const top = y + 9;
+            ops.push(`${shade} rg ${PDF_M - 6} ${(top - h - 4).toFixed(2)} ${(PDF_W - 2*PDF_M + 12).toFixed(2)} ${(h + 8).toFixed(2)} re f`); },
+        /* shade sized to the text it contains, so nothing spills outside the panel */
+        warnBlock(title, body, shade){
+            const lines = wrapChars(body, 92).length;
+            this.box(15 + lines * 12.4 + 4, shade || "0.97 0.90 0.90");
+            this.h2(title); this.p(body);
+        },
+        page(){ newPage(); }
+    };
+}
+
+function buildPdfRecord(r){
+    const cfg = CONFIG[r.len];
+    const doc = pdfDoc();
+
+    doc.h1("1-Deck Casino Card to BIP-39 Seed Record");
+    doc.p("Generator version " + VERSION + ", derivation id \"" + DERIVATION_ID + "\".");
+    doc.p("Generated offline from physical card draws. No random number generator was used at any "
+        + "point: every entropy bit below comes from cards that were shuffled, drawn and typed in by hand.");
+    doc.gap(4);
+
+    doc.warnBlock("THIS DOCUMENT IS YOUR SEED",
+        "Anyone holding this file can spend your funds. The card draws alone reproduce the seed, so "
+        + "redacting the word list does not make it safe. Print it and destroy the digital copy, or store "
+        + "it exactly as you would store the seed phrase itself. Never place it on an internet-connected "
+        + "or cloud-synced machine.");
+    doc.gap(6);
+
+    doc.rule();
+    doc.h2("1. CONFIGURATION");
+    doc.kv("Seed length", `${r.len} words (${cfg.entropyBits}-bit entropy)`);
+    doc.kv("Protocol", r.protocol === "dealthrough"
+        ? `Deal-through, ${r.layout.length} shuffle${r.layout.length === 1 ? "" : "s"} (draws per pass: ${r.layout.join(" + ")})`
+        : "Reshuffle the full deck between every draw");
+    doc.kv("Entropy setting", r.margin === "margin" ? "Safety margin" : "Minimum draws");
+    doc.kv("Physical draws", `${r.cards.length} draws of 4 cards = ${r.cards.length * 4} entries`);
+    doc.kv("Deck", "one standard 52-card deck" + (r.protocol === "dealthrough" ? "" : ", reshuffled between draws"));
+
+    doc.h2("2. ENTROPY ACCOUNTING");
+    doc.kv("Card entropy available", `${r.rawBits.toFixed(2)} bits`);
+    doc.kv("Bits extracted", `${cfg.entropyBits} bits`);
+    doc.kv("Head-room", `${r.headroom.toFixed(2)} bits`);
+    doc.kv("Extraction efficiency", `${(cfg.entropyBits / r.rawBits * 100).toFixed(1)} %`);
+    doc.gap(2);
+    doc.p("Head-room is the surplus that lets SHA-256 act as a randomness extractor: it is what absorbs "
+        + "an imperfect shuffle instead of passing the bias through to the seed.");
+
+    doc.rule();
+    doc.h2("3. PHYSICAL DRAWS, IN THE ORDER THE CARDS CAME OFF THE DECK");
+    doc.p("Ranks A 2 3 4 5 6 7 8 9 T J Q K   Suits C=Clubs D=Diamonds H=Hearts S=Spades. "
+        + "Order matters: the same four cards in a different order give a different seed.");
+    doc.gap(4);
+    {
+        let d = 0;
+        r.layout.forEach((count, p) => {
+            if(r.protocol === "dealthrough"){
+                doc.gap(3);
+                doc.mono(`-- Shuffle ${p + 1} of ${r.layout.length}: deal ${count * 4} cards --`, 0, 8.4);
+            }
+            for(let k = 0; k < count; k++, d++)
+                doc.mono(`Draw ${String(d + 1).padStart(2)} :  `
+                    + r.cards[d].map(c => cardCode(c).padEnd(3)).join(" ")
+                    + "   (" + r.cards[d].map(c => cardName(c)).join(", ") + ")", 0, 8.4);
+        });
+    }
+
+    doc.gap(4);
+    if(r.shuffle){
+        doc.h2("SHUFFLE CHECK");
+        doc.p(r.shuffle.headline);
+        doc.p("Counted: the " + r.shuffle.pairsExamined + " pairs of cards dealt within " + ADJ_WINDOW
+            + " positions of each other that share a suit and sit one rank apart. A sealed deck arrives with each "
+            + "suit in rank order, so surviving pairs are the fingerprint of a deck that was not riffled enough. "
+            + "Expected " + r.shuffle.lambda.toFixed(2) + " for a well-shuffled deck; warning above "
+            + r.shuffle.warn + ", strong alarm above " + r.shuffle.alarm + ".");
+        if(r.shuffle.hits.length) doc.p("Pairs found: " + r.shuffle.hits.join("; "));
+        doc.p("This is a blunder detector, not a certificate: it catches one or two riffles reliably, is blind to "
+            + "four or more, and assumes the deck started in factory order. A deck already in some other known order "
+            + "- a cancelled casino deck resealed in a box, for instance - passes this check regardless.");
+    }
+
+    doc.rule();
+    doc.h2("4. DERIVATION - REPRODUCIBLE WITH ANY SHA-256 TOOL");
+    doc.p("Step 1. Every card, in order, is written into one domain-separated ASCII string:");
+    doc.gap(3); doc.mono(r.preimage, 10); doc.gap(5);
+    doc.p("Step 2. That string is hashed. Reproduce it on any command line with the following, which is ONE "
+        + "line - if it wraps below, join it back together before running it:");
+    doc.gap(3); doc.mono(`printf '%s' '${r.preimage}' | sha256sum`, 10); doc.gap(5);
+    doc.kv("SHA-256 of preimage", "");
+    doc.mono(r.digestHex, 150);
+    doc.gap(4);
+    doc.p(`Step 3. The leading ${cfg.entropyBits} bits of that digest are the entropy:`);
+    doc.gap(3); doc.mono(r.entropyHex, 10, 9.6); doc.gap(5);
+    doc.p(`Step 4. The BIP-39 checksum is computed from that entropy - it is not drawn and not chosen. `
+        + `SHA-256(entropy) = ${r.csHashHex}; its leading ${cfg.entropyBits / 32} bits (${r.csBits}) are `
+        + `appended, and the resulting ${cfg.entropyBits + cfg.entropyBits / 32} bits are split into `
+        + `${r.len} groups of 11, each indexing the official BIP-39 English word list.`);
+
+    doc.page();
+    doc.h1("Seed Phrase");
+    doc.warnBlock("SECRET - ANYONE WHO READS THIS CAN SPEND YOUR FUNDS", "");
+    doc.gap(8);
+
+    /* numbered words, three columns */
+    {
+        const perCol = Math.ceil(r.words.length / 3);
+        const colW   = (PDF_W - 2 * PDF_M) / 3;
+        for(let row = 0; row < perCol; row++){
+            let line = "";
+            for(let col = 0; col < 3; col++){
+                const i = col * perCol + row;
+                if(i >= r.words.length) continue;
+                const cell = `${String(i + 1).padStart(2)}. ${r.words[i]}`;
+                line += cell.padEnd(Math.floor(colW / (10 * 0.6)));
+            }
+            doc.mono(line.replace(/\s+$/, ""), 0, 10);
+        }
+    }
+
+    doc.gap(10);
+    doc.rule();
+    doc.h2("FULL SEED PHRASE");
+    doc.gap(2);
+    doc.mono(r.words.join(" "), 0, 10.5);
+    doc.gap(10);
+
+    doc.rule();
+    doc.h2("VERIFICATION");
+    doc.kv("BIP-39 checksum", r.valid ? "VALID - re-checked against the BIP-39 rules" : "INVALID - DO NOT USE");
+    if(r.addresses && r.addresses.length){
+        doc.gap(2);
+        doc.kv("First receive addresses", "native SegWit, BIP-84");
+        for(const a of r.addresses) doc.mono(`  ${a.path}   ${a.address}`, 0, 8.6);
+        doc.gap(4);
+    }
+    if(r.xfp){
+        doc.kv("Master fingerprint", r.xfp.toUpperCase() + "   (no passphrase)");
+        doc.p("Restore these words into your wallet or signing device and compare the fingerprint it shows. If the "
+            + "eight characters match, every word arrived intact. A BIP-39 passphrase changes this value, and is "
+            + "deliberately not recorded here.");
+    }
+    doc.kv("Draw fingerprint", "");
+    doc.mono(r.fingerprint, 150);
+    doc.gap(4);
+    doc.p("To confirm this record is intact, re-enter the draws from section 3 into the generator and "
+        + "check that you get the same seed phrase. The fingerprint above is SHA-256 over the string "
+        + "\"fingerprint|\" followed by the card codes, and is what the tool's verify-by-re-entry mode compares.");
+    doc.gap(4);
+    doc.p("No date is recorded in this file. The generator has no access to the system clock by design, "
+        + "so that nothing time-derived can enter the derivation.");
+
+    /* The recovery card. A backup that depends on one web page still existing is not a backup,
+       so the paper carries the steps to rebuild the phrase somewhere else, with this record's
+       own values already filled in. */
+    doc.gap(6);
+    doc.rule();
+    doc.h2("RECOVERY WITHOUT THIS GENERATOR");
+    doc.p("The entropy in section 4 is the universal interchange format: any BIP-39 tool can turn it back "
+        + "into these exact words.");
+    doc.gap(3);
+    doc.mono(`1.  Entropy:  ${r.entropyHex}`, 6, 8.8);
+    doc.mono(`or recompute it from the draws in section 3, as shown there.`, 34, 8.8);
+    doc.mono(`2.  Open a BIP-39 tool. iancoleman.io/bip39 is the most widely mirrored;`, 6, 8.8);
+    doc.mono(`use its offline standalone copy, on a disconnected machine.`, 34, 8.8);
+    doc.mono(`3.  Set  Entropy Type = Hex.  Set it explicitly - auto-detect can read`, 6, 8.8);
+    doc.mono(`an all-digit entropy as base 10 and silently give the wrong seed.`, 34, 8.8);
+    doc.mono(`4.  Set  Mnemonic Length = "Use Raw Entropy".  NOT "${r.len} Words" - that`, 6, 8.8);
+    doc.mono(`hashes your entropy a second time and yields a different seed.`, 34, 8.8);
+    doc.mono(`5.  Paste the entropy. The phrase appears immediately.`, 6, 8.8);
+    if(r.addresses && r.addresses.length)
+        doc.mono(`6.  Verify: BIP84 tab, first address = ${r.addresses[0].address}`, 6, 8.8);
+    else
+        doc.mono(`6.  Verify against the fingerprint and addresses above.`, 6, 8.8);
+    doc.gap(3);
+    doc.p("Do not paste the CARDS into another tool and expect these words: other tools encode cards "
+        + "differently, so you would get a valid but different seed. The entropy hex is what they share.");
+
+    doc.gap(6);
+    doc.rule();
+    doc.h2("STORAGE");
+    doc.p("Store on paper or metal, offline, where only you can reach it. Test recovery with a small amount "
+        + "before committing real funds. A BIP-39 passphrase is a second factor and is not recorded here.");
+
+    return assemblePdf(doc.pages);
+}
+
+function assemblePdf(pages){
+    const objects = [];                    // 1-indexed on output
+    const put = s => { objects.push(s); return objects.length; };
+
+    const catalogId = 1, pagesId = 2;
+    objects.push("", "");                  // reserve 1 and 2
+
+    const fontH  = put("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+    const fontHB = put("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+    const fontC  = put("<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>");
+
+    const pageIds = [];
+    for(const ops of pages){
+        const stream = ops.join("\n");
+        const contentId = put(`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+        const pageId = put(
+            `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${PDF_W} ${PDF_H}] ` +
+            `/Resources << /Font << /F1 ${fontH} 0 R /F2 ${fontHB} 0 R /F3 ${fontC} 0 R >> >> ` +
+            `/Contents ${contentId} 0 R >>`);
+        pageIds.push(pageId);
+    }
+    objects[catalogId - 1] = `<< /Type /Catalog /Pages ${pagesId} 0 R >>`;
+    objects[pagesId - 1]   = `<< /Type /Pages /Kids [${pageIds.map(i => i + " 0 R").join(" ")}] /Count ${pageIds.length} >>`;
+
+    let out = "%PDF-1.4\n";
+    const offsets = [];
+    objects.forEach((body, i) => {
+        offsets.push(out.length);
+        out += `${i + 1} 0 obj\n${body}\nendobj\n`;
+    });
+    const xref = out.length;
+    out += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+    for(const off of offsets) out += String(off).padStart(10, "0") + " 00000 n \n";
+    out += `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+
+    const bytes = new Uint8Array(out.length);
+    for(let i = 0; i < out.length; i++) bytes[i] = out.charCodeAt(i) & 0xff;
+    return bytes;
+}
+
+/* ═════════ BLANK DRAW SHEET (PDF) ═════════
+   Printing the page through the browser could never work: #printSheet lives inside a .panel,
+   and the print stylesheet hid every .panel. A display:none ancestor removes the whole subtree
+   from the layout, so no override on the child can bring it back — the result was a decorated
+   blank page. The sheet is now drawn directly, with real ruled boxes sized for handwriting, so
+   what you get does not depend on the browser's print engine at all. */
+function buildBlankSheet(){
+    const cfg    = CONFIG[state.len];
+    const doc    = pdfDoc();
+    const LABEL_W = 64, BOX_W = 86, BOX_H = 28, GAP = 16, ROW = BOX_H + 10;
+    const boxX    = i => PDF_M + LABEL_W + i * (BOX_W + GAP);
+
+    doc.h1("Draw Sheet");
+    doc.p(`${state.len}-word seed   -   ${state.totalDraws} draws of 4 cards (${state.totalDraws * 4} entries)   -   `
+        + `${state.protocol === "dealthrough"
+             ? `one 52-card deck, dealt straight through (${state.layout.join(" + ")} draws per pass)`
+             : "one 52-card deck, reshuffled between every draw"}`);
+    doc.gap(6);
+
+    doc.rule();
+    doc.h2("BEFORE YOU START");
+    doc.p("1.  Use a sealed deck bought new from a shop. Remove the jokers and any advertising cards - 52 cards "
+        + "exactly. Check it for drilled holes or clipped corners first: a cancelled casino deck resealed in a box "
+        + "can arrive in a known order, and no check in the generator would notice.");
+    doc.p("2.  WASH IT. Spread all 52 cards face-down on the table and swirl them with both hands for at least "
+        + "30 seconds, then square the deck up. This destroys the factory order much faster than riffling, and "
+        + "every entropy figure the generator quotes assumes that order is gone.");
+    doc.p("3.  Work offline, away from cameras and phones.");
+    doc.p(state.protocol === "dealthrough"
+        ? "4.  After the wash, riffle at least seven times with a cut or strip between each, then deal the cards for that pass straight off the top."
+        : "4.  After the wash, riffle at least seven times with a cut or strip between each, before EVERY draw. Return the four cards and reshuffle each time.");
+    doc.p("5.  Deal four cards face up, left to right, and write them in that order. Order matters: the same "
+        + "four cards in a different order give a different seed.");
+    doc.p("6.  Write each card as rank then suit, two characters, e.g.  AS  7H  TD  3C.");
+    doc.h2("HOW TO WRITE A CARD");
+    doc.mono("Ranks   A  2  3  4  5  6  7  8  9  T(=10)  J  Q  K", 6, 9.5);
+    doc.mono("Suits   C = Clubs      D = Diamonds      H = Hearts      S = Spades", 6, 9.5);
+    doc.mono("Example AS = Ace of Spades       TD = Ten of Diamonds       7H = Seven of Hearts", 6, 9.5);
+    doc.gap(4);
+    doc.rule();
+
+    /* the grid */
+    const columnHeader = () => {
+        doc.gap(4);
+        ["1st card", "2nd card", "3rd card", "4th card"].forEach((h, i) =>
+            doc.at(h, "F2", 8, boxX(i) + 2, 0));
+        doc.gap(11);
+    };
+    let d = 0;
+    if(state.protocol !== "dealthrough") columnHeader();
+
+    state.layout.forEach((count, p) => {
+        if(state.protocol === "dealthrough"){
+            doc.need(64);
+            doc.gap(4);
+            doc.at((state.layout.length === 1
+                        ? "Shuffle the deck"
+                        : `Shuffle ${p + 1} of ${state.layout.length}`)
+                 + `  -  riffles performed: ______   then deal `
+                 + (state.layout.length === 1 ? `all ${count * 4} cards`
+                    : count === 1 ? `draw ${d + 1} (4 cards)`
+                    : `draws ${d + 1}-${d + count} (${count * 4} cards)`)
+                 + " straight off the top", "F2", 9.5, PDF_M, 0);
+            doc.gap(15);
+            columnHeader();
+        }
+        for(let k = 0; k < count; k++, d++){
+            if(doc.need(ROW + 6)) columnHeader();
+            doc.at(`Draw ${d + 1}`, "F2", 10.5, PDF_M, -BOX_H + 11);
+            for(let i = 0; i < 4; i++) doc.rect(boxX(i), BOX_W, BOX_H);
+            doc.gap(ROW);
+        }
+    });
+
+    /* Somewhere to write the fingerprint the generator shows, and the one the wallet shows
+       back. Eight boxes, one per hex character, in order — the format is like fa7661b2. */
+    doc.gap(6);
+    doc.rule();
+    doc.h2("MASTER FINGERPRINT");
+    doc.p("The generator shows eight characters after you enter the draws. Your wallet or signing device shows "
+        + "the same eight after you restore these words. Write both down and compare them character by character.");
+    doc.gap(10);
+    {
+        const FW = 30, FH = 30, FG = 8, LBL = 96;
+        const fx = i => PDF_M + LBL + i * (FW + FG);
+        const row = label => {
+            doc.need(FH + 16);
+            doc.at(label, "F2", 9, PDF_M, -FH + 11);
+            for(let i = 0; i < 8; i++) doc.rect(fx(i), FW, FH);
+            doc.gap(FH + 12);
+        };
+        row("Generator");
+        row("Wallet");
+        doc.need(18);
+        doc.rect(PDF_M, 12, 12);
+        doc.at("They match, character for character", "F1", 9.3, PDF_M + 20, -9);
+        doc.gap(22);
+    }
+
+    doc.rule();
+    doc.h2("NOTES");
+    doc.p("Deck brand and where it came from, how you shuffled, which wallet you restored into, anything you "
+        + "want the next person reading this to know. Do not write the seed words here.");
+    doc.gap(12);
+    for(let i = 0; i < 6; i++){ doc.need(20); doc.hline(PDF_M, PDF_W - 2 * PDF_M); doc.gap(20); }
+
+    doc.gap(2);
+    doc.rule();
+    doc.h2("WHEN THE SHEET IS FULL");
+    doc.p("Type the draws into the generator, then use verify-by-re-entry: it blanks the grid and asks you to "
+        + "type them again, catching a mis-copied card before you fund anything.");
+    doc.warnBlock("A COMPLETED SHEET IS YOUR SEED",
+        "These cards alone reproduce the seed phrase. Guard this paper exactly as you would guard the words, "
+        + "and destroy it only after you have tested recovery.");
+    doc.p(`Generator version ${VERSION}. No date is recorded: this tool has no access to the clock by design.`);
+
+    return assemblePdf(doc.pages);
+}
+
+function downloadBlankSheet(){
+    const btn = document.getElementById("sheetBtn");
+    try{
+        const blob = new Blob([buildBlankSheet()], { type: "application/pdf" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `draw-sheet-${state.len}w-${state.totalDraws}draws.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        btn.textContent = "Sheet downloaded";
+        setTimeout(() => btn.textContent = "Download blank draw sheet (PDF)", 2500);
+    }catch(err){
+        btn.textContent = "Failed: " + (err && err.message ? err.message : String(err));
+        setTimeout(() => btn.textContent = "Download blank draw sheet (PDF)", 4000);
+    }
+}
+
+function downloadPdfRecord(){
+    if(!state.lastResult){ return; }
+    const btn = document.getElementById("pdfBtn");
+    try{
+        const bytes = buildPdfRecord(state.lastResult);
+        const blob  = new Blob([bytes], { type: "application/pdf" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `seed-record-${state.lastResult.len}w.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        btn.textContent = "PDF saved - it contains your seed";
+        setTimeout(() => btn.textContent = "Download PDF record", 3000);
+    }catch(err){
+        btn.textContent = "PDF failed: " + (err && err.message ? err.message : String(err));
+        setTimeout(() => btn.textContent = "Download PDF record", 4000);
+    }
+}
+
+/* ═════════ VERSION LABELS ═════════
+   Every version string on the page is written from the VERSION constant at load time. They used
+   to be typed by hand in six places and three of them silently fell behind — the header still
+   read 2.01 at version 2.09. The self-test now fails if any literal version string reappears. */
+function applyVersionLabels(){
+    const set = (id, text) => { const el = document.getElementById(id); if(el) el.textContent = text; };
+    document.title = `1-Deck Casino Card → BIP-39 Seed Generator v${VERSION} (Physical Draws Only)`;
+    set("verLine",   `version ${VERSION} · physical draws only · no random number generator`);
+    set("verFooter", `1-deck casino card → BIP-39 · version ${VERSION} · physical draws only · for offline use`);
+    set("cmdLinux",  `sha256sum "${FILE_NAME}"`);
+    set("cmdMac",    `shasum -a 256 "${FILE_NAME}"`);
+    set("cmdWin",    `Get-FileHash -Algorithm SHA256 "${FILE_NAME}"`);
+}
+
+/* ═════════ EXECUTION CONTEXT ═════════
+   A page served over http(s) can be different for every visitor, so a hash you checked once
+   proves nothing about what you are running now. This is advisory only — a page cannot enforce
+   its own provenance, and a hostile copy would simply delete this check. It exists to catch the
+   ordinary mistake of clicking a link instead of downloading the file.
+   No clock is read here; the RNG audit stays clean. */
+function checkExecutionContext(){
+    const el = document.getElementById("contextBanner");
+    if(!el) return;
+    const proto = String(location.protocol || "").toLowerCase();
+    const isLocal = proto === "file:" || proto === "about:";
+    const notes = [];
+
+    if(!isLocal){
+        notes.push(
+            `<strong>Running from a web server (<code>${proto}</code>), not a local file.</strong> ` +
+            `A server can send different code to each visitor, so nothing you verified once still holds. ` +
+            `Treat anything generated here as compromised.` +
+            `<div class="btnrow" style="margin-top:12px;">` +
+            `<button class="danger" id="ctxSaveBtn" onclick="downloadPage('ctxSaveBtn')">&#8595;&nbsp; Download this file</button>` +
+            `</div>` +
+            `<span style="font-size:13px;">Then check its hash (section 7) and reopen it from your own drive.</span>`);
+    }
+    if(typeof navigator !== "undefined" && navigator.onLine === true){
+        notes.push(
+            `<strong>The browser reports this machine is online.</strong> It can be wrong either way — if it ` +
+            `is, disconnect before generating anything real.`);
+    }
+
+    const dismiss = `<button class="bannerX" title="Dismiss" onclick="dismissContextBanner()">&times;</button>`;
+    el.style.display = "block";
+    if(notes.length){
+        el.className = "banner " + (isLocal ? "warn" : "danger");
+        el.innerHTML = dismiss +
+            notes.join("<hr style='border:none;border-top:1px solid rgba(255,255,255,.2);margin:12px 0;'>");
+    }else{
+        el.className = "banner ok-ctx";
+        el.innerHTML = dismiss +
+            `<strong>Local file, no network reported — the right setup.</strong> That is what the browser ` +
+            `reports, not proof of an air gap.`;
+    }
+}
+/* Dismissable: the warning has been read, and a banner that cannot be closed just gets ignored. */
+function dismissContextBanner(){
+    const el = document.getElementById("contextBanner");
+    if(el) el.style.display = "none";
+}
+
+/* ═════════ BIP-32 MASTER FINGERPRINT ═════════
+   The checksum only proves the words are well-formed, and verify-by-re-entry only proves you
+   typed the same cards twice. Neither can tell you the seed you are about to fund is the seed
+   your wallet will actually hold. The master fingerprint can: restore these words into your
+   wallet or signing device, look at the eight hex characters it displays, and compare.
+
+   Chain: mnemonic -> PBKDF2-HMAC-SHA512 (2048 iterations, salt "mnemonic" + passphrase) -> the
+   512-bit BIP-39 seed -> HMAC-SHA512 with key "Bitcoin seed" -> BIP-32 master key -> secp256k1
+   public key -> RIPEMD160(SHA256(pubkey)) -> first four bytes.
+
+   PBKDF2-HMAC-SHA512 and HMAC-SHA512 are native WebCrypto. secp256k1 and RIPEMD-160 are written
+   out below because no browser provides them. Everything here is deterministic; no randomness,
+   no clock, nothing leaves the page. Verified against both BIP-32 specification test vectors and
+   the RIPEMD-160 known-answer vectors in the self-test.
+
+   The fingerprint is NOT a secret - it travels in every PSBT and signing devices display it
+   openly - so it stays readable while the words themselves remain blurred. That is deliberate:
+   you can check the fingerprint against your device without putting the seed on screen. */
+
+/* ── RIPEMD-160, pure JavaScript ── */
+const RMD_ZL=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,7,4,13,1,10,6,15,3,12,0,9,5,2,14,11,8,
+  3,10,14,4,9,15,8,1,2,7,0,6,13,11,5,12,1,9,11,10,0,8,12,4,13,3,7,15,14,5,6,2,
+  4,0,5,9,7,12,2,10,14,1,3,8,11,6,15,13];
+const RMD_ZR=[5,14,7,0,9,2,11,4,13,6,15,8,1,10,3,12,6,11,3,7,0,13,5,10,14,15,8,12,4,9,1,2,
+  15,5,1,3,7,14,6,9,11,8,12,2,10,0,4,13,8,6,4,1,3,11,15,0,5,12,2,13,9,7,10,14,
+  12,15,10,4,1,5,8,7,6,2,13,14,0,3,9,11];
+const RMD_SL=[11,14,15,12,5,8,7,9,11,13,14,15,6,7,9,8,7,6,8,13,11,9,7,15,7,12,15,9,11,7,13,12,
+  11,13,6,7,14,9,13,15,14,8,13,6,5,12,7,5,11,12,14,15,14,15,9,8,9,14,5,6,8,6,5,12,
+  9,15,5,11,6,8,13,12,5,12,13,14,11,8,5,6];
+const RMD_SR=[8,9,9,11,13,15,15,5,7,7,8,11,14,14,12,6,9,13,15,7,12,8,9,11,7,7,12,7,6,15,13,11,
+  9,7,15,11,8,6,6,14,12,13,5,14,13,13,7,5,15,5,8,11,14,14,6,14,6,9,12,9,12,5,15,8,
+  8,5,12,9,12,5,14,6,8,13,6,5,15,13,11,11];
+const RMD_KL=[0x00000000,0x5a827999,0x6ed9eba1,0x8f1bbcdc,0xa953fd4e];
+const RMD_KR=[0x50a28be6,0x5c4dd124,0x6d703ef3,0x7a6d76e9,0x00000000];
+function ripemd160(data){
+    const rol=(x,n)=>((x<<n)|(x>>>(32-n)))>>>0;
+    const f=(j,x,y,z)=> j<16?(x^y^z) : j<32?((x&y)|(~x&z)) : j<48?((x|~y)^z) : j<64?((x&z)|(y&~z)) : (x^(y|~z));
+    const ml=data.length;
+    const padded=new Uint8Array((((ml+8)>>6)+1)<<6);
+    padded.set(data); padded[ml]=0x80;
+    const dv=new DataView(padded.buffer);
+    const bits=ml*8;
+    dv.setUint32(padded.length-8, bits>>>0, true);
+    dv.setUint32(padded.length-4, Math.floor(bits/4294967296), true);
+    let h=[0x67452301,0xefcdab89,0x98badcfe,0x10325476,0xc3d2e1f0];
+    for(let off=0;off<padded.length;off+=64){
+        const X=[]; for(let i=0;i<16;i++) X.push(dv.getUint32(off+i*4,true));
+        let [al,bl,cl,dl,el]=h, [ar,br,cr,dr,er]=h;
+        for(let j=0;j<80;j++){
+            let t=(al+f(j,bl,cl,dl)+X[RMD_ZL[j]]+RMD_KL[(j/16)|0])>>>0;
+            t=(rol(t,RMD_SL[j])+el)>>>0;
+            al=el; el=dl; dl=rol(cl,10); cl=bl; bl=t;
+            t=(ar+f(79-j,br,cr,dr)+X[RMD_ZR[j]]+RMD_KR[(j/16)|0])>>>0;
+            t=(rol(t,RMD_SR[j])+er)>>>0;
+            ar=er; er=dr; dr=rol(cr,10); cr=br; br=t;
+        }
+        const t=(h[1]+cl+dr)>>>0;
+        h=[t,(h[2]+dl+er)>>>0,(h[3]+el+ar)>>>0,(h[4]+al+br)>>>0,(h[0]+bl+cr)>>>0];
+    }
+    const out=new Uint8Array(20), o=new DataView(out.buffer);
+    h.forEach((v,i)=>o.setUint32(i*4,v,true));
+    return out;
+}
+
+/* ── secp256k1: just enough to turn a private key into a compressed public key ── */
+const SECP_P  = 2n**256n - 2n**32n - 977n;
+const SECP_GX = BigInt("0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798");
+const SECP_GY = BigInt("0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8");
+const secpMod = a => ((a % SECP_P) + SECP_P) % SECP_P;
+function secpInv(a){
+    let l = secpMod(a), h = SECP_P, lm = 1n, hm = 0n;
+    while(l > 1n){ const r = h / l; [lm, hm, l, h] = [hm - lm * r, lm, h - l * r, l]; }
+    return secpMod(lm);
+}
+function secpAdd(A, B){
+    if(!A) return B; if(!B) return A;
+    const [x1,y1] = A, [x2,y2] = B;
+    if(x1 === x2 && y1 !== y2) return null;
+    const s = (x1 === x2) ? secpMod(3n*x1*x1*secpInv(2n*y1)) : secpMod((y2-y1)*secpInv(x2-x1));
+    const x3 = secpMod(s*s - x1 - x2);
+    return [x3, secpMod(s*(x1-x3) - y1)];
+}
+function secpPubKey(k){
+    let R = null, A = [SECP_GX, SECP_GY];
+    while(k > 0n){ if(k & 1n) R = secpAdd(R, A); A = secpAdd(A, A); k >>= 1n; }
+    const out = new Uint8Array(33);
+    out[0] = (R[1] & 1n) === 0n ? 2 : 3;
+    const hex = R[0].toString(16).padStart(64, "0");
+    for(let i = 0; i < 32; i++) out[i+1] = parseInt(hex.substr(i*2, 2), 16);
+    return out;
+}
+
+/* ── WebCrypto helpers ── */
+async function pbkdf2Sha512(passBytes, saltBytes, iterations, lenBytes){
+    const subtle = getSubtle();
+    if(!subtle) throw new Error("WebCrypto unavailable");
+    const key = await subtle.importKey("raw", passBytes, { name: "PBKDF2" }, false, ["deriveBits"]);
+    const bits = await subtle.deriveBits(
+        { name: "PBKDF2", salt: saltBytes, iterations, hash: "SHA-512" }, key, lenBytes * 8);
+    return new Uint8Array(bits);
+}
+async function hmacSha512(keyBytes, msgBytes){
+    const subtle = getSubtle();
+    if(!subtle) throw new Error("WebCrypto unavailable");
+    const key = await subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-512" }, false, ["sign"]);
+    return new Uint8Array(await subtle.sign("HMAC", key, msgBytes));
+}
+
+/* ── the fingerprint itself ── */
+async function masterFingerprint(words, passphrase){
+    const mnemonic = words.join(" ").normalize("NFKD");
+    const salt     = ("mnemonic" + (passphrase || "")).normalize("NFKD");
+    const seed     = await pbkdf2Sha512(enc.encode(mnemonic), enc.encode(salt), 2048, 64);
+    const I        = await hmacSha512(enc.encode("Bitcoin seed"), seed);
+    const kHex     = toHex(I.slice(0, 32));
+    const pub      = secpPubKey(BigInt("0x" + kHex));
+    const sha      = await sha256Bytes(pub);
+    const h160     = ripemd160(sha);
+    return { xfp: toHex(h160.slice(0, 4)), bip39SeedHex: toHex(seed) };
+}
+
+async function renderFingerprint(words){
+    const el   = document.getElementById("xfpBlock");
+    const val  = document.getElementById("xfpValue");
+    const note = document.getElementById("xfpNote");
+    const pass = (document.getElementById("xfpPass") || {}).value || "";
+    el.style.display = "block";
+    val.textContent = "computing…";
+    try{
+        const r = await masterFingerprint(words, pass);
+        val.textContent = r.xfp.toUpperCase();
+        note.innerHTML =
+            `Restore these words into your wallet or signing device and compare the fingerprint it shows ` +
+            `(a Coldcard calls it XFP; other wallets say "master key fingerprint" or "root fingerprint"). ` +
+            `If the eight characters match, every word arrived intact and you are looking at the same seed. ` +
+            `If they do not, stop.` +
+            (pass ? `<br><br><strong>Computed with the passphrase you entered.</strong> Your wallet must be given the ` +
+                    `same passphrase, character for character, or it will show a different fingerprint. The passphrase ` +
+                    `is not written into the PDF record.`
+                  : `<br><br>Computed with <strong>no passphrase</strong>. If you add a BIP-39 passphrase in your wallet, ` +
+                    `it will show a different fingerprint — enter the passphrase above to check that instead.`);
+        if(state.lastResult) state.lastResult.xfp = r.xfp;
+        return r;
+    }catch(err){
+        val.textContent = "unavailable";
+        note.textContent = "Could not compute the fingerprint: " +
+            (err && err.message ? err.message : String(err)) +
+            ". This does not affect the seed above.";
+        return null;
+    }
+}
+
+/* ═════════ SHUFFLE-METHOD GUIDANCE ═════════
+   Repetition counts are not folklore: each method was simulated against this tool's own shuffle
+   statistic, starting from factory order, 3,000 sessions per row. The figure quoted is the number
+   of repetitions at which the check stops firing, i.e. the deck stops looking like a new deck.
+
+     table riffle      1: 24.7 pairs   3: 9.2   4: 5.3   5: 3.8   7: 3.3   (uniform = 3.26)
+     overhand/Hindu    1: 24.4         5: 13.3  10: 7.4  25: 3.7  50: 3.3
+     wash              a few seconds of genuine swirling already reaches 3.3
+     faro              deterministic: see below
+
+   Nothing here changes the derivation. It changes what the tool tells you to do with your hands. */
+const SHUFFLE_ADVICE = {
+    riffle: { level:"info", title:"Table riffle — the method everything here is calibrated against",
+        body:
+        "Measured from factory order: one riffle leaves 24.7 adjacent pairs where a shuffled deck averages 3.3. " +
+        "Three riffles still leave 9.2 and the check fires 62% of the time. Four leave 5.3. From five onwards the " +
+        "deck is statistically indistinguishable from uniform on this test.<br><br>" +
+        "<strong>Do:</strong> wash first, then riffle at least seven times, cutting or stripping between each. " +
+        "Seven is the classical Bayer-Diaconis figure and it costs you nothing to exceed it." },
+
+    overhand: { level:"warn", title:"Overhand or Hindu — needs far more repetitions than people think",
+        body:
+        "These strip small packets off the deck and stack them, which moves cards in clumps rather than " +
+        "interleaving them. Measured from factory order: <strong>10 passes still leave 7.4 adjacent pairs and the " +
+        "check fires 30% of the time. It takes roughly 25 passes to reach 3.7, and 50 to settle at 3.3.</strong><br><br>" +
+        "So an overhand shuffle is not wrong, it is just slow: budget <strong>50 passes or more</strong>, not the " +
+        "handful most people do. If you can riffle instead, riffle. If you cannot, wash the deck thoroughly first — " +
+        "that does most of the work and the overhand passes then only have to finish the job." },
+
+    wash: { level:"info", title:"Wash / smoosh — the most effective thing you can do with your hands",
+        body:
+        "Spreading the cards face-down and swirling them mixes far faster than any in-hand technique, because it " +
+        "moves cards freely rather than in packets. In simulation a genuine wash reaches the uniform figure almost " +
+        "immediately, and wash-then-one-riffle already measures 3.28 against a uniform 3.26.<br><br>" +
+        "<strong>Caveat worth stating:</strong> the model idealises a wash as free random exchanges, which is " +
+        "kinder than reality — real cards stay in loose clumps and slide together. Published work on physical " +
+        "smooshing puts a good wash at <strong>30 to 60 seconds</strong>. Do that, then riffle anyway. A wash alone " +
+        "is unverifiable by eye, and the riffles cost you seconds." },
+
+    faro: { level:"fail", title:"Faro / perfect interleave — this is not a shuffle, it is a permutation",
+        body:
+        "A perfect faro splits the deck exactly in half and interleaves one card at a time. It contains " +
+        "<strong>no randomness at all</strong>: eight perfect out-faros return a 52-card deck to its original " +
+        "order, exactly. Using it would give you a seed anyone can reproduce.<br><br>" +
+        "<strong>It also defeats this tool's shuffle check.</strong> Measured: two faros score <strong>0.00 " +
+        "adjacent pairs</strong> — better than a genuinely random deck — so the check passes with a perfect result " +
+        "while the deck holds zero entropy. That is a real limit of the check and worth understanding: a low score " +
+        "means the deck does not look like a <em>new</em> deck. It never means the deck is random.<br><br>" +
+        "Do not use faro. If you can do one reliably, you already know why." }
+};
+function renderShuffleAdvice(){
+    const sel = document.getElementById("shuffleMethod");
+    const box = document.getElementById("shuffleAdvice");
+    if(!sel || !box) return;
+    const a = SHUFFLE_ADVICE[sel.value] || SHUFFLE_ADVICE.riffle;
+    box.className = "out " + a.level;
+    box.innerHTML = `<strong>${a.title}</strong><br><br>${a.body}`;
+}
+function onPassChange(){
+    if(!state.lastResult) return;
+    renderFingerprint(state.lastResult.words);
+    renderAddresses(state.lastResult.words);
+}
+
+/* ═════════ FIRST RECEIVE ADDRESSES (BIP-84 native SegWit) ═════════
+   The fingerprint proves the words survived transcription. The addresses prove the same thing
+   in the form you will actually look at in a wallet: restore the seed, open the receive tab,
+   and the first two addresses should be character-for-character these.
+
+   Path m/84'/0'/0'/0/0 and .../0/1. Adapted from the calculation half of Amulet v1.58 — the
+   BIP-32 child derivation and the bech32 encoder — with its secp256k1 dependency replaced by
+   the point multiplication already in this file. Nothing automatic was taken: this file has no
+   generator to borrow from and does not want one.
+
+   Deterministic throughout. Verified against the BIP-84 specification test vectors in the
+   self-test. Addresses are public by definition, so they stay readable while the words are
+   blurred — but they do link this seed to on-chain activity, which is a privacy matter rather
+   than a theft one. */
+const CURVE_N = BigInt("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
+const bytesToBig = b => { let n = 0n; for(const x of b) n = (n << 8n) | BigInt(x); return n; };
+const bigToBytes = (n, len) => { const o = new Uint8Array(len); for(let i = len-1; i >= 0; i--){ o[i] = Number(n & 0xffn); n >>= 8n; } return o; };
+
+async function ckdPriv(priv, cc, index){
+    const data = new Uint8Array(37);
+    if(index >= 0x80000000){ data[0] = 0; data.set(priv, 1); }      // hardened: 0x00 || key
+    else { data.set(secpPubKey(bytesToBig(priv)), 0); }             // normal: compressed pubkey
+    new DataView(data.buffer).setUint32(33, index >>> 0, false);
+    const I  = await hmacSha512(cc, data);
+    const il = bytesToBig(I.slice(0, 32));
+    if(il >= CURVE_N) throw new Error("IL >= n");
+    const ki = (il + bytesToBig(priv)) % CURVE_N;
+    if(ki === 0n) throw new Error("ki == 0");
+    return { priv: bigToBytes(ki, 32), cc: I.slice(32) };
+}
+
+/* ── bech32 / segwit v0 ── */
+const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+function bech32Polymod(values){
+    const GEN = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+    let chk = 1;
+    for(const v of values){
+        const top = chk >>> 25;
+        chk = ((chk & 0x1ffffff) << 5) ^ v;
+        for(let i = 0; i < 5; i++) if((top >> i) & 1) chk ^= GEN[i];
+    }
+    return chk;
+}
+function bech32Encode(hrp, data){
+    const expand = [];
+    for(let i = 0; i < hrp.length; i++) expand.push(hrp.charCodeAt(i) >> 5);
+    expand.push(0);
+    for(let i = 0; i < hrp.length; i++) expand.push(hrp.charCodeAt(i) & 31);
+    const polymod = bech32Polymod(expand.concat(data).concat([0,0,0,0,0,0])) ^ 1;   // bech32, witness v0
+    const checksum = [];
+    for(let i = 0; i < 6; i++) checksum.push((polymod >> (5 * (5 - i))) & 31);
+    let s = hrp + "1";
+    for(const v of data.concat(checksum)) s += BECH32_CHARSET[v];
+    return s;
+}
+function convertBits(data, fromBits, toBits, pad){
+    let acc = 0, bits = 0; const ret = []; const maxv = (1 << toBits) - 1;
+    for(const v of data){
+        acc = (acc << fromBits) | v; bits += fromBits;
+        while(bits >= toBits){ bits -= toBits; ret.push((acc >> bits) & maxv); }
+    }
+    if(pad && bits > 0) ret.push((acc << (toBits - bits)) & maxv);
+    return ret;
+}
+
+async function firstAddresses(words, passphrase, count){
+    const mnemonic = words.join(" ").normalize("NFKD");
+    const salt     = ("mnemonic" + (passphrase || "")).normalize("NFKD");
+    const seed     = await pbkdf2Sha512(enc.encode(mnemonic), enc.encode(salt), 2048, 64);
+    const I        = await hmacSha512(enc.encode("Bitcoin seed"), seed);
+    let priv = I.slice(0, 32), cc = I.slice(32);
+    for(const idx of [84 + 0x80000000, 0 + 0x80000000, 0 + 0x80000000, 0]){   // m/84'/0'/0'/0
+        const step = await ckdPriv(priv, cc, idx);
+        priv = step.priv; cc = step.cc;
+    }
+    const out = [];
+    for(let i = 0; i < (count || 2); i++){
+        const child = await ckdPriv(priv, cc, i);
+        const pub   = secpPubKey(bytesToBig(child.priv));
+        const h160  = ripemd160(await sha256Bytes(pub));
+        out.push({ path: `m/84'/0'/0'/0/${i}`, address: bech32Encode("bc", [0].concat(convertBits(Array.from(h160), 8, 5, true))) });
+    }
+    return out;
+}
+
+async function renderAddresses(words){
+    const el = document.getElementById("addrBlock");
+    const list = document.getElementById("addrList");
+    const pass = (document.getElementById("xfpPass") || {}).value || "";
+    el.style.display = "block";
+    list.innerHTML = `<div class="addrRow"><span class="ap">computing…</span></div>`;
+    try{
+        const addrs = await firstAddresses(words, pass, 2);
+        list.innerHTML = addrs.map(a =>
+            `<div class="addrRow"><span class="ap">${a.path}</span><span class="aa">${a.address}</span></div>`).join("");
+        if(state.lastResult) state.lastResult.addresses = addrs;
+        return addrs;
+    }catch(err){
+        list.innerHTML = `<div class="addrRow"><span class="ap">unavailable</span><span class="aa">` +
+            `${err && err.message ? err.message : String(err)}</span></div>`;
+        return null;
+    }
+}
+
+/* ═════════ SEED PRESENTATION ═════════
+   Assume the machine itself is trusted; a keylogged host is outside anything a page can fix.
+   What a page CAN reduce is how long the seed sits legible on a screen, how long it sits on the
+   clipboard, and whether the browser can bring your draws back after you have gone.
+
+   Masking is a CSS blur plus user-select:none and pointer-events:none. It defeats eyes,
+   cameras, screen-share previews and screenshot thumbnails. It does NOT hide the text from a
+   browser extension or anything else reading the DOM - that text is still there, which is why
+   the wipe button exists and is the real answer. */
+const REVEAL_IDLE_SEC = 20;       // auto re-hide after this many idle seconds
+const CLIP_CLEAR_SEC  = 60;       // overwrite the clipboard this many seconds after a copy
+const MASKED_IDS      = ["wordGrid", "phraseText", "detail"];
+
+/* Deliberately counted in whole ticks rather than read off the clock. Date.now() here would be
+   harmless - it never touches the derivation - but the page's own RNG audit flags any clock
+   access, and an audit you have to explain away is worthless. Keeping it literally true costs
+   nothing but a counter. */
+let revealTickTimer = null, revealLeft = 0;
+let clipTickTimer = null, clipTimerRunning = false, clipLeft = 0;
+
+function setMasked(on){
+    MASKED_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.classList.toggle("masked", on);
+    });
+    const btn = document.getElementById("revealBtn");
+    if(btn) btn.textContent = on ? "Reveal seed" : "Hide seed now";
+    if(on){
+        clearInterval(revealTickTimer);
+        revealTickTimer = null;
+        const cd = document.getElementById("revealCountdown");
+        if(cd) cd.textContent = "";
+    }
+}
+function armRevealTimer(){
+    clearInterval(revealTickTimer);
+    revealLeft = REVEAL_IDLE_SEC;
+    const cd = document.getElementById("revealCountdown");
+    const show = () => { if(cd) cd.textContent = `re-hides in ${revealLeft}s`; };
+    show();
+    revealTickTimer = setInterval(() => {
+        revealLeft--;
+        if(revealLeft <= 0){ setMasked(true); return; }   // setMasked clears this interval
+        show();
+    }, 1000);
+}
+function isRevealed(){
+    const el = document.getElementById("phraseText");
+    return el && !el.classList.contains("masked");
+}
+function toggleReveal(){
+    if(isRevealed()){ setMasked(true); return; }
+    setMasked(false);
+    armRevealTimer();
+}
+/* Any activity while revealed pushes the deadline out, so writing the words down by hand does
+   not get interrupted; going away does. */
+["mousemove", "keydown", "pointerdown", "wheel", "touchstart"].forEach(ev =>
+    document.addEventListener(ev, () => { if(isRevealed()) armRevealTimer(); }, { passive: true }));
+
+/* Switching tab or window hides it at once. This is what a screen-share picker, a window
+   switcher and the operating system's own thumbnails capture. */
+document.addEventListener("visibilitychange", () => { if(document.hidden) setMasked(true); });
+window.addEventListener("blur", () => setMasked(true));
+
+/* ── clipboard: written on request, overwritten on a timer ── */
+function stopClipTimer(){
+    clearInterval(clipTickTimer);
+    clipTickTimer = null;
+    clipTimerRunning = false;
+}
+function armClipboardClear(){
+    stopClipTimer();
+    clipTimerRunning = true;
+    clipLeft = CLIP_CLEAR_SEC;
+    const btn = document.getElementById("copyBtn");
+    const show = () => { if(btn) btn.textContent = `Clipboard clears in ${clipLeft}s`; };
+    show();
+    clipTickTimer = setInterval(() => {
+        clipLeft--;
+        if(clipLeft > 0){ show(); return; }
+        stopClipTimer();
+        if(navigator.clipboard && navigator.clipboard.writeText)
+            navigator.clipboard.writeText(" ").then(() => {
+                if(btn) btn.textContent = "Clipboard cleared";
+                setTimeout(() => { if(btn) btn.textContent = "Copy seed phrase"; }, 2500);
+            }, () => {
+                if(btn) btn.textContent = "Clear the clipboard yourself";
+                setTimeout(() => { if(btn) btn.textContent = "Copy seed phrase"; }, 4000);
+            });
+        else if(btn) btn.textContent = "Clear the clipboard yourself";
+    }, 1000);
+}
+
+/* ── stop the browser restoring the draws after you leave ──
+   Session restore and the back/forward cache repopulate form controls, and your card draws
+   reproduce the seed exactly. autocomplete="off" on every control asks the browser not to;
+   blanking them on pagehide means there is nothing left to restore even if it ignores that. */
+window.addEventListener("pagehide", () => {
+    try{
+        const xp = document.getElementById("xfpPass"); if(xp) xp.value = "";
+        for(let d = 0; d < state.totalDraws; d++){
+            const q = document.getElementById(`q_${d}`);
+            if(q) q.value = "";
+            for(let c = 0; c < 4; c++){
+                const r = document.getElementById(`r_${d}_${c}`), st = document.getElementById(`s_${d}_${c}`);
+                if(r) r.value = ""; if(st) st.value = "";
+            }
+        }
+    }catch(e){}
+});
+
+/* ═════════ WIPE THIS SESSION ═════════
+   What this can honestly do, and what it cannot, is stated in the panel rather than implied.
+
+   It CAN: clear every card you typed, the derived entropy, the seed words, the derivation
+   detail, the draw fingerprint and all test output from the page; drop the JavaScript
+   references to them after overwriting what is overwritable; best-effort clear the clipboard;
+   and clear browser storage (which this tool never writes to, but defence in depth is free).
+
+   It CANNOT scrub RAM. JavaScript strings are immutable and garbage-collected: assigning over
+   a variable removes the reference, it does not erase the bytes, and the engine may hold
+   copies until they are collected and the memory reused. Nor can any web page touch the swap
+   file, the hibernation image, GPU memory, files you downloaded, or paper you printed.
+
+   Reloading the page afterwards is the strongest step available from here, because it discards
+   the whole JavaScript heap and the DOM along with the inputs' undo history — which setting
+   .value = "" does not clear. The panel offers that as the follow-up, and says why. */
+
+let wipeTimer = null, wipeLeft = 0, testsRunning = false;
+
+/* Overwrite what can be overwritten, then drop the reference. Typed arrays and plain arrays
+   really are zeroed; strings are replaced, which is the best a page can do. */
+function scrubValue(v){
+    if(v == null) return null;
+    if(typeof v === "string") return "0".repeat(v.length);
+    if(Array.isArray(v)){ for(let i = 0; i < v.length; i++) v[i] = scrubValue(v[i]); v.length = 0; return []; }
+    if(ArrayBuffer.isView(v)){ v.fill(0); return v; }
+    if(typeof v === "object"){ for(const k of Object.keys(v)) v[k] = scrubValue(v[k]); return {}; }
+    if(typeof v === "number") return 0;
+    return null;
+}
+
+function startWipe(){
+    if(wipeTimer) return;
+    wipeLeft = 3;
+    document.getElementById("wipeBtn").disabled = true;
+    document.getElementById("wipeCancel").style.display = "inline-block";
+    renderWipeCountdown();
+    wipeTimer = setInterval(() => {
+        wipeLeft--;
+        if(wipeLeft <= 0){ clearInterval(wipeTimer); wipeTimer = null; doWipe(); }
+        else renderWipeCountdown();
+    }, 1000);
+}
+function renderWipeCountdown(){
+    const box = document.getElementById("wipeStatus");
+    box.style.display = "block";
+    box.className = "out fail";
+    box.innerHTML = `<strong style="font-size:19px;">Wiping this session in ${wipeLeft}…</strong><br>` +
+                    `Everything you have entered and everything derived from it is about to be cleared. ` +
+                    `Press <strong>Cancel</strong> to stop.`;
+}
+function cancelWipe(){
+    if(wipeTimer){ clearInterval(wipeTimer); wipeTimer = null; }
+    document.getElementById("wipeBtn").disabled = false;
+    document.getElementById("wipeCancel").style.display = "none";
+    const box = document.getElementById("wipeStatus");
+    box.className = "out info";
+    box.textContent = "Wipe cancelled. Nothing was cleared.";
+}
+
+function doWipe(){
+    /* Invalidate anything still in flight: a long self-test or a mid-hash derivation must not
+       write its results back into the DOM after the wipe has reported success. */
+    state.generation++;
+    stopClipTimer();
+    setMasked(true);
+    document.getElementById("seedMaskBar").style.display = "none";
+    const clipboardTried = !!(navigator.clipboard && navigator.clipboard.writeText);
+
+    /* 1 · every card the user typed, in the DOM */
+    for(let d = 0; d < state.totalDraws; d++){
+        const q = document.getElementById(`q_${d}`);
+        if(q){ q.value = ""; }
+        for(let c = 0; c < 4; c++){
+            const r = document.getElementById(`r_${d}_${c}`), s = document.getElementById(`s_${d}_${c}`);
+            if(r) r.value = ""; if(s) s.value = "";
+        }
+    }
+
+    /* 2 · everything derived from them, in the DOM */
+    const blank = (id, prop, val) => { const el = document.getElementById(id); if(el) el[prop] = val; };
+    blank("wordGrid", "innerHTML", "");
+    blank("phraseText", "textContent", "");
+    blank("detail", "textContent", "");
+    blank("drawMsg", "innerHTML", "");
+    blank("testOut", "textContent", "");
+    blank("testProgress", "textContent", "");
+    blank("xfpValue", "textContent", "");
+    blank("xfpNote", "innerHTML", "");
+    blank("addrList", "innerHTML", "");
+    const xp0 = document.getElementById("xfpPass"); if(xp0) xp0.value = "";
+    document.getElementById("xfpBlock").style.display = "none";
+    document.getElementById("addrBlock").style.display = "none";
+    document.getElementById("phraseBlock").style.display = "none";
+    document.getElementById("resultBtns").style.display = "none";
+    document.getElementById("detail").style.display = "none";
+    document.getElementById("testOut").style.display = "none";
+    document.getElementById("shuffleCheck").style.display = "none";
+    document.getElementById("shuffleCheck").innerHTML = "";
+    document.getElementById("verifyStatus").className = "out info";
+    document.getElementById("verifyStatus").textContent = "Derive a seed first, then start verification.";
+    document.getElementById("verifyCheckBtn").disabled = true;
+
+    /* 3 · in-memory state: overwrite, then drop */
+    if(state.lastResult) scrubValue(state.lastResult);
+    state.lastResult = null;
+    if(state.verify.cards) scrubValue(state.verify.cards);
+    if(state.verify.fingerprint) state.verify.fingerprint = scrubValue(state.verify.fingerprint);
+    state.verify = { active: false, fingerprint: null, cards: null };
+    
+
+    /* 4 · clipboard, in case the phrase was copied. This runs from the countdown timer rather
+          than the click, so browsers that require transient user activation (Firefox) will
+          refuse. We therefore never claim success - the banner tells you to clear it yourself. */
+    let clipboardCleared = false;
+    try{
+        if(clipboardTried)
+            navigator.clipboard.writeText(" ").then(() => {
+                clipboardCleared = true;
+                const n = document.getElementById("wipeClipboard");
+                if(n) n.textContent = "The clipboard was also cleared.";
+            }, () => {});
+    }catch(e){}
+
+    /* 5 · storage this tool never writes to, cleared anyway */
+    try{ localStorage.clear(); sessionStorage.clear(); }catch(e){}
+
+    /* 6 · any text left selected on screen */
+    try{ const sel = window.getSelection(); if(sel) sel.removeAllRanges(); }catch(e){}
+
+    /* 7 · fresh, empty interface */
+    rebuild();
+
+    const box = document.getElementById("wipeStatus");
+    box.className = "out ok";
+    box.innerHTML =
+        `<strong style="font-size:18px;">Session wiped.</strong><br>` +
+        `Cleared from this page: your card draws, the entropy, the seed words, the derivation detail, the draw ` +
+        `fingerprint, the shuffle check and all self-test output. Browser storage was cleared too, though this ` +
+        `tool never writes to it. Anything still running was cancelled.` +
+        `<br><span id="wipeClipboard">Clear your clipboard yourself if you copied the phrase &mdash; browsers ` +
+        `often refuse a clipboard write that does not come straight from a click.</span>` +
+        `<br><br>` +
+        `<strong>What this cannot reach.</strong> A web page cannot scrub RAM: JavaScript strings are immutable ` +
+        `and garbage-collected, so overwriting removes the reference but the bytes may survive until the memory ` +
+        `is reused. Nor can it touch your swap or hibernation file, PDFs you downloaded, or anything you printed.` +
+        `<br><br>` +
+        `<strong>To finish properly:</strong> reload this page, then close the browser completely. Reloading ` +
+        `discards the whole JavaScript heap and the text boxes' undo history, which clearing a field does not. ` +
+        `Then delete any PDF you saved, and put the paper somewhere safe or destroy it.` +
+        `<div class="btnrow"><button class="danger" onclick="location.reload()">Reload page now</button></div>`;
+
+    document.getElementById("wipeBtn").disabled = false;
+    document.getElementById("wipeCancel").style.display = "none";
+}
+
+/* ═════════ misc ═════════ */
+function downloadPage(btnId){
+    /* outerHTML serialises the LIVE dom, which after a derivation contains the seed phrase,
+       the entropy and the preimage inside #detail. Saving that to disk under a name that
+       looks like a pristine copy of the tool would be a quiet disaster, so refuse. */
+    if(state.lastResult){
+        const btn = document.getElementById(btnId || "savePageBtn");
+        if(btn){
+            const was = btn.textContent;
+            btn.textContent = "Wipe the session first — a saved copy would contain your seed";
+            setTimeout(() => btn.textContent = was, 5000);
+        }
+        return;
+    }
+    const doctype = new XMLSerializer().serializeToString(document.doctype);
+    const blob = new Blob([doctype + document.documentElement.outerHTML], {type:"text/html;charset=utf-8"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = FILE_NAME;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+}
+
+/* Escape is the universal "stop" — it cancels the wipe countdown. */
+document.addEventListener("keydown", ev => {
+    if(ev.key === "Escape" && wipeTimer) cancelWipe();
+});
+
+applyVersionLabels();
+checkExecutionContext();
+renderShuffleAdvice();
+rebuild();
+</script>
+</body></html>

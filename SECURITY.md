@@ -103,6 +103,19 @@ Stated so you know what the existing checks do and do not prove.
 - **A negative control** inside that sweep, asserting the broken build *would* be caught, so the
   sweep cannot quietly stop working.
 
+- **An input guard on the derivation itself**, with a self-test that proves it fires. The
+  derivation refuses anything that is not a grid of canonical card indices rather than deriving
+  from it. See the note below for why.
+
+**A near miss, fixed in 2.14 and kept here because the shape of it is instructive.** `cardCode()`
+converts a card index to its two-letter code and validated nothing, so `cardCode(null)` returned
+`"AC"` — `null % 13` is `0`. A grid with one draw left blank would therefore have derived from
+aces of clubs the user never drew, and produced twelve valid words with a correct checksum and
+nothing on screen to suggest anything was wrong. It was never reachable: every caller validated
+first. But "the caller checks" is precisely the arrangement that fails the first time somebody
+adds a caller, and the damage would have been a wrong seed that looked right. `deriveFromCards()`
+now refuses malformed input itself, and seven self-tests assert that it does.
+
 **A defect found in this project's own history, kept here as a caution.** An earlier version's
 golden vectors and sensitivity sweep each re-implemented the derivation inline instead of calling
 the shipped function. Sabotaging the real derivation left every test passing with a perfect score.
